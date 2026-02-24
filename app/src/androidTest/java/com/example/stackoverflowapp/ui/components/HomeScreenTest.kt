@@ -1,9 +1,11 @@
 package com.example.stackoverflowapp.ui.components
 
+import android.graphics.Bitmap
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.example.stackoverflowapp.data.image.ImageLoader
 import com.example.stackoverflowapp.domain.model.User
 import com.example.stackoverflowapp.ui.home.HomeUiState
 import org.junit.Assert
@@ -15,11 +17,16 @@ class HomeScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    val fakeImageLoader = object : ImageLoader {
+        override suspend fun loadBitmap(url: String): Bitmap? = null
+    }
+
     @Test
     fun loadingState_showsLoadingMessage() {
         composeRule.setContent {
             HomeScreen(
                 uiState = HomeUiState.Loading,
+                imageLoader = fakeImageLoader,
                 onRefresh = {}
             )
         }
@@ -32,6 +39,7 @@ class HomeScreenTest {
         composeRule.setContent {
             HomeScreen(
                 uiState = HomeUiState.Empty,
+                imageLoader = fakeImageLoader,
                 onRefresh = {}
             )
         }
@@ -46,6 +54,7 @@ class HomeScreenTest {
         composeRule.setContent {
             HomeScreen(
                 uiState = HomeUiState.Error("Network down"),
+                imageLoader = fakeImageLoader,
                 onRefresh = { retryCount++ }
             )
         }
@@ -67,6 +76,7 @@ class HomeScreenTest {
         composeRule.setContent {
             HomeScreen(
                 uiState = HomeUiState.Success(users),
+                imageLoader = fakeImageLoader,
                 onRefresh = {}
             )
         }
@@ -82,10 +92,12 @@ class HomeScreenTest {
         )
 
         composeRule.setContent {
-            UsersPolaroidGridView(users = users)
+            UsersPolaroidGridView(
+                users = users,
+                imageLoader = fakeImageLoader,
+            )
         }
 
-        composeRule.onNodeWithText("JA").assertIsDisplayed()
         composeRule.onNodeWithText("Jeff Atwood").assertIsDisplayed()
         composeRule.onNodeWithText("9k").assertIsDisplayed()
     }
