@@ -2,7 +2,6 @@ package com.example.stackoverflowapp.ui.components
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -44,12 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.stackoverflowapp.data.image.ImageLoader
-import com.example.stackoverflowapp.data.network.HttpClient
 import com.example.stackoverflowapp.domain.model.User
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
 import kotlin.math.abs
 
 @Composable

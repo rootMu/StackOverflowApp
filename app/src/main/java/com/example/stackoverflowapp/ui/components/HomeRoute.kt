@@ -3,9 +3,7 @@ package com.example.stackoverflowapp.ui.components
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import com.example.stackoverflowapp.data.image.HttpImageLoader
 import com.example.stackoverflowapp.data.image.ImageLoader
-import com.example.stackoverflowapp.data.network.HttpUrlConnectionClient
 import com.example.stackoverflowapp.ui.home.HomeViewModel
 
 @Composable
