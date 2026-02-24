@@ -1,0 +1,28 @@
+package com.example.stackoverflowapp.ui.components
+
+import androidx.compose.runtime.Composable
+import com.example.stackoverflowapp.ui.home.HomeUiState
+
+@Composable
+fun HomeScreen(
+    uiState: HomeUiState,
+    onRefresh: () -> Unit
+) {
+    when(uiState) {
+        HomeUiState.Loading -> LoadingScreen()
+
+        HomeUiState.Empty -> EmptyStateView(
+            title = "No users found",
+            message = "No StackOverflow users were returned."
+        )
+
+        is HomeUiState.Error -> ErrorStateView(
+            message = uiState.message,
+            onRetry = onRefresh
+        )
+
+        is HomeUiState.Success -> UsersPolaroidGridView(
+            users = uiState.users
+        )
+    }
+}
