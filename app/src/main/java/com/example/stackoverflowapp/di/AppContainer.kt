@@ -1,6 +1,8 @@
 package com.example.stackoverflowapp.di
 
 import android.content.Context
+import com.example.stackoverflowapp.data.repo.UserRepository
+import com.example.stackoverflowapp.data.repo.fake.FakeUserRepository
 
 /**
  * Central application-level dependency container.
@@ -17,4 +19,8 @@ import android.content.Context
  *
  */
 
-class AppContainer(context: Context)
+class AppContainer(context: Context) {
+
+    val userRepository: UserRepository = FakeUserRepository()
+
+}
