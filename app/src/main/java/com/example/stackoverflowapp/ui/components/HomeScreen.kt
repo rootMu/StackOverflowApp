@@ -1,14 +1,16 @@
 package com.example.stackoverflowapp.ui.components
 
 import androidx.compose.runtime.Composable
+import com.example.stackoverflowapp.data.image.ImageLoader
 import com.example.stackoverflowapp.ui.home.HomeUiState
 
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
+    imageLoader: ImageLoader,
     onRefresh: () -> Unit
 ) {
-    when(uiState) {
+    when (uiState) {
         HomeUiState.Loading -> LoadingScreen()
 
         HomeUiState.Empty -> EmptyStateView(
@@ -22,7 +24,8 @@ fun HomeScreen(
         )
 
         is HomeUiState.Success -> UsersPolaroidGridView(
-            users = uiState.users
+            users = uiState.users,
+            imageLoader = imageLoader
         )
     }
 }

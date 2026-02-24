@@ -1,6 +1,8 @@
 package com.example.stackoverflowapp.di
 
 import android.content.Context
+import com.example.stackoverflowapp.data.network.HttpClient
+import com.example.stackoverflowapp.data.network.HttpUrlConnectionClient
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.data.repo.fake.FakeUserRepository
 
@@ -22,5 +24,9 @@ import com.example.stackoverflowapp.data.repo.fake.FakeUserRepository
 class AppContainer(context: Context) {
 
     val userRepository: UserRepository = FakeUserRepository()
+
+    val httpClient: HttpClient by lazy {
+        HttpUrlConnectionClient()
+    }
 
 }

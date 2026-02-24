@@ -2,7 +2,6 @@ package com.example.stackoverflowapp.ui.components
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -43,16 +42,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.stackoverflowapp.data.image.ImageLoader
 import com.example.stackoverflowapp.domain.model.User
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
 import kotlin.math.abs
 
 @Composable
 fun UsersPolaroidGridView(
     users: List<User>,
+    imageLoader: ImageLoader,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -66,14 +63,15 @@ fun UsersPolaroidGridView(
             items = users,
             key = { user -> user.id }
         ) { user ->
-            CompactPolaroidUserCard(user = user)
+            CompactPolaroidUserCard(user = user, imageLoader = imageLoader)
         }
     }
 }
 
 @Composable
 private fun CompactPolaroidUserCard(
-    user: User
+    user: User,
+    imageLoader: ImageLoader
 ) {
     val tiltDegrees = tiltForUser(user.id)
 
@@ -98,6 +96,7 @@ private fun CompactPolaroidUserCard(
                 UserPhotoOrPlaceholder(
                     imageUrl = user.profileImageUrl,
                     displayName = user.displayName,
+                    imageLoader = imageLoader,
                     modifier = Modifier.matchParentSize()
                 )
 
@@ -146,13 +145,14 @@ private fun CompactPolaroidUserCard(
 private fun UserPhotoOrPlaceholder(
     imageUrl: String?,
     displayName: String,
+    imageLoader: ImageLoader,
     modifier: Modifier = Modifier
 ) {
     val bitmapState by produceState<Bitmap?>(initialValue = null, imageUrl) {
         value = if (imageUrl.isNullOrBlank()) {
             null
         } else {
-            loadBitmapFromUrl(imageUrl)
+            imageLoader.loadBitmap(imageUrl)
         }
     }
 
@@ -223,32 +223,4 @@ private fun formatReputation(reputation: Int): String {
 private fun trimZeros(value: Float): String {
     val oneDecimal = String.format("%.1f", value)
     return if (oneDecimal.endsWith(".0")) oneDecimal.dropLast(2) else oneDecimal
-}
-
-private suspend fun loadBitmapFromUrl(imageUrl: String): Bitmap? {
-    return withContext(Dispatchers.IO) {
-        runCatching {
-            val url = URL(imageUrl)
-            val connection = (url.openConnection() as HttpURLConnection).apply {
-                connectTimeout = 5_000
-                readTimeout = 5_000
-                instanceFollowRedirects = true
-                doInput = true
-            }
-
-            connection.connect()
-
-            if (connection.responseCode !in 200..299) {
-                connection.disconnect()
-                return@runCatching null
-            }
-
-            val bitmap = connection.inputStream.use { input ->
-                BitmapFactory.decodeStream(input)
-            }
-
-            connection.disconnect()
-            bitmap
-        }.getOrNull()
-    }
 }
