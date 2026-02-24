@@ -10,18 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import com.example.stackoverflowapp.ui.theme.DiSerria
 import com.example.stackoverflowapp.ui.theme.Tradewind
 import com.example.stackoverflowapp.ui.theme.Zircon
-import kotlinx.coroutines.delay
 
 @Composable
 fun LoadingScreen(
@@ -75,26 +68,5 @@ fun LoadingScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun LoadingStateView() {
-    var isLoading by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        delay(1500) // fake loading
-        isLoading = false
-    }
-
-    if (isLoading) {
-        LoadingScreen()
-    } else {
-        Text(
-            text = "Users loaded",
-            modifier = Modifier
-                .fillMaxSize()
-                .wrapContentSize()
-        )
     }
 }
