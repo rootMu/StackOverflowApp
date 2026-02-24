@@ -1,0 +1,24 @@
+package com.example.stackoverflowapp.ui.home
+
+import com.example.stackoverflowapp.domain.model.User
+
+sealed interface HomeUiState {
+
+    data object Loading : HomeUiState
+
+    data class Success(
+        val users: List<User>
+    ) : HomeUiState
+
+    /**
+     * Used when the request succeeded but no users are returned.
+     */
+    data object Empty : HomeUiState
+
+    data class Error(
+        val message: String
+    ) : HomeUiState
+}
+
+internal fun List<User>.toHomeUiState(): HomeUiState =
+    if (isEmpty()) HomeUiState.Empty else HomeUiState.Success(this)
