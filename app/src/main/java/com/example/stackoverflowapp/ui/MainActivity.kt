@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.example.stackoverflowapp.StackOverflowApp
-import com.example.stackoverflowapp.data.image.HttpImageLoader
 import com.example.stackoverflowapp.di.AppContainer
 import com.example.stackoverflowapp.ui.components.HomeRoute
 import com.example.stackoverflowapp.ui.home.HomeViewModel
@@ -19,10 +18,6 @@ class MainActivity : ComponentActivity() {
         (application as StackOverflowApp).container
     }
 
-    private val imageLoader by lazy {
-        HttpImageLoader(appContainer.httpClient)
-    }
-
     private val viewModel: HomeViewModel by viewModels {
         HomeViewModelFactory(appContainer.userRepository)
     }
@@ -32,7 +27,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             StackOverflowTheme {
-                HomeRoute(viewModel = viewModel, imageLoader = imageLoader)
+                HomeRoute(viewModel = viewModel, imageLoader = appContainer.imageLoader)
             }
         }
     }
