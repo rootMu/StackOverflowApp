@@ -19,11 +19,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,6 +52,8 @@ import kotlin.math.abs
 @Composable
 fun UsersPolaroidGridView(
     users: List<User>,
+    followedUserIds: Set<Int>,
+    onFollowClick: (Int) -> Unit,
     imageLoader: ImageLoader,
     modifier: Modifier = Modifier
 ) {
@@ -63,7 +68,12 @@ fun UsersPolaroidGridView(
             items = users,
             key = { user -> user.id }
         ) { user ->
-            CompactPolaroidUserCard(user = user, imageLoader = imageLoader)
+            CompactPolaroidUserCard(
+                user = user,
+                isFollowed = user.id in followedUserIds,
+                onFollowClick = { onFollowClick(user.id) },
+                imageLoader = imageLoader
+            )
         }
     }
 }
@@ -71,6 +81,8 @@ fun UsersPolaroidGridView(
 @Composable
 private fun CompactPolaroidUserCard(
     user: User,
+    isFollowed: Boolean,
+    onFollowClick: () -> Unit,
     imageLoader: ImageLoader
 ) {
     val tiltDegrees = tiltForUser(user.id)
@@ -118,6 +130,30 @@ private fun CompactPolaroidUserCard(
                         .align(Alignment.TopStart)
                         .padding(4.dp)
                 )
+
+                IconButton(
+                    onClick = onFollowClick,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(4.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xCCFFFFFF),
+                        shadowElevation = 2.dp
+                    ) {
+                        Icon(
+                            imageVector = if (isFollowed) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                            contentDescription = if (isFollowed) {
+                                "Unfollow ${user.displayName}"
+                            } else {
+                                "Follow ${user.displayName}"
+                            },
+                            tint = if (isFollowed) Color(0xFFF2B705) else Color(0xFF555555),
+                            modifier = Modifier.padding(6.dp)
+                        )
+                    }
+                }
             }
 
             Box(

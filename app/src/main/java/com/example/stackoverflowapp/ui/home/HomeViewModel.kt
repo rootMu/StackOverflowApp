@@ -33,5 +33,16 @@ class HomeViewModel(
         }
     }
 
+    fun toggleFollow(userId: Int) {
+        val current = _uiState.value
+        if(current !is HomeUiState.Success) return
+
+        val updatedFollowedIds = current.followedUserIds.toMutableSet().apply {
+            if(!add(userId)) remove(userId)
+        }
+
+        _uiState.value = current.copy(followedUserIds = updatedFollowedIds)
+    }
+
 
 }
