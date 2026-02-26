@@ -16,6 +16,7 @@ fun HomeRoute(
     HomeScreen(
         uiState = uiState,
         imageLoader = imageLoader,
-        onRefresh = viewModel::loadUsers
+        onRefresh = viewModel::loadUsers,
+        onFollowClick = viewModel::toggleFollow
     )
 }

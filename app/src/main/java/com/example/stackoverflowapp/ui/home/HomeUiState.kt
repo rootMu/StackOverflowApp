@@ -7,7 +7,8 @@ sealed interface HomeUiState {
     data object Loading : HomeUiState
 
     data class Success(
-        val users: List<User>
+        val users: List<User>,
+        val followedUserIds: Set<Int> = emptySet()
     ) : HomeUiState
 
     /**
