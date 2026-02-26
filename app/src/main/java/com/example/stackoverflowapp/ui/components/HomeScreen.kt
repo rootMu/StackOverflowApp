@@ -9,10 +9,11 @@ import com.example.stackoverflowapp.ui.home.HomeUiState
 fun HomeScreen(
     uiState: HomeUiState,
     imageLoader: ImageLoader,
-    onRefresh: () -> Unit,
+    onRetry: () -> Unit,
     onFollowClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+
     when (uiState) {
         HomeUiState.Loading -> LoadingScreen()
 
@@ -23,7 +24,7 @@ fun HomeScreen(
 
         is HomeUiState.Error -> ErrorStateView(
             message = uiState.message,
-            onRetry = onRefresh
+            onRetry = onRetry
         )
 
         is HomeUiState.Success -> UsersPolaroidGridView(

@@ -23,6 +23,9 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    var isRefreshing by mutableStateOf(false)
+        private set
+
     init {
         loadUsers()
     }
@@ -51,6 +54,14 @@ class HomeViewModel(
         viewModelScope.launch {
             userStore.setFollowedUserIds(newIds)
             updateUiState()
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            isRefreshing = true
+            userRepository.refreshUsers()
+            isRefreshing = false
         }
     }
 
