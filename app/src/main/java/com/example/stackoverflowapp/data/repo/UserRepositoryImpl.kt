@@ -3,16 +3,38 @@ package com.example.stackoverflowapp.data.repo
 import com.example.stackoverflowapp.data.api.ApiResult
 import com.example.stackoverflowapp.data.api.StackOverflowUsersApi
 import com.example.stackoverflowapp.data.api.UserDto
+import com.example.stackoverflowapp.data.storage.UserDatabase
 import com.example.stackoverflowapp.domain.model.User
 
 class UserRepositoryImpl(
-    private val usersApi: StackOverflowUsersApi
-): UserRepository {
+    private val usersApi: StackOverflowUsersApi,
+    private val userDatabase: UserDatabase
+) : UserRepository {
 
     override suspend fun fetchTopUsers(): Result<List<User>> {
-        return when (val result = usersApi.fetchTopUsers(page = 1, pageSize = 20)) {
+
+        val localUsers = userDatabase.getAllUsers()
+
+        if (localUsers.isNotEmpty()) {
+            return Result.success(localUsers)
+        }
+
+        return fetchUsersFromApi()
+    }
+
+    override suspend fun refreshUsers(): Result<List<User>> {
+        userDatabase.clearAllUsers()
+        return fetchUsersFromApi()
+    }
+
+    private suspend fun fetchUsersFromApi() =
+        when (val result = usersApi.fetchTopUsers(page = 1, pageSize = 20)) {
             is ApiResult.Success -> {
-                Result.success(result.data.items.map { it.toDomain() })
+                val domainUsers = result.data.items.map { it.toDomain() }
+
+                userDatabase.insertUsers(domainUsers)
+
+                Result.success(domainUsers)
             }
 
             is ApiResult.Error.Http -> {
@@ -31,7 +53,7 @@ class UserRepositoryImpl(
                 Result.failure(Exception(result.message))
             }
         }
-    }
+
 }
 
 private fun UserDto.toDomain(): User {

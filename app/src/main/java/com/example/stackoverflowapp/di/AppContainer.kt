@@ -12,6 +12,7 @@ import com.example.stackoverflowapp.data.parser.UsersResponseParser
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.data.repo.UserRepositoryImpl
 import com.example.stackoverflowapp.data.storage.SharedPrefsUserStore
+import com.example.stackoverflowapp.data.storage.UserDatabase
 import com.example.stackoverflowapp.data.storage.UserStore
 
 /**
@@ -33,6 +34,7 @@ interface AppContainer {
     val userRepository: UserRepository
     val imageLoader: ImageLoader
     val userStore: UserStore
+    val userDatabase: UserDatabase
 }
 
 class DefaultAppContainer(private val context: Context): AppContainer {
@@ -50,7 +52,7 @@ class DefaultAppContainer(private val context: Context): AppContainer {
     }
 
     override val userRepository: UserRepository by lazy {
-        UserRepositoryImpl(usersApi)
+        UserRepositoryImpl(usersApi, userDatabase)
     }
 
     override val imageLoader: ImageLoader by lazy {
@@ -59,6 +61,10 @@ class DefaultAppContainer(private val context: Context): AppContainer {
 
     override val userStore: UserStore by lazy {
         SharedPrefsUserStore(context)
+    }
+
+    override val userDatabase: UserDatabase by lazy {
+        UserDatabase(context)
     }
 
 }
