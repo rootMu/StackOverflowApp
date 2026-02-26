@@ -27,7 +27,8 @@ class HomeScreenTest {
             HomeScreen(
                 uiState = HomeUiState.Loading,
                 imageLoader = fakeImageLoader,
-                onRefresh = {}
+                onRefresh = {},
+                onFollowClick = {}
             )
         }
 
@@ -40,7 +41,8 @@ class HomeScreenTest {
             HomeScreen(
                 uiState = HomeUiState.Empty,
                 imageLoader = fakeImageLoader,
-                onRefresh = {}
+                onRefresh = {},
+                onFollowClick = {}
             )
         }
 
@@ -55,7 +57,8 @@ class HomeScreenTest {
             HomeScreen(
                 uiState = HomeUiState.Error("Network down"),
                 imageLoader = fakeImageLoader,
-                onRefresh = { retryCount++ }
+                onRefresh = { retryCount++ },
+                onFollowClick = {}
             )
         }
 
@@ -77,7 +80,8 @@ class HomeScreenTest {
             HomeScreen(
                 uiState = HomeUiState.Success(users),
                 imageLoader = fakeImageLoader,
-                onRefresh = {}
+                onRefresh = {},
+                onFollowClick = {}
             )
         }
 
@@ -95,6 +99,8 @@ class HomeScreenTest {
             UsersPolaroidGridView(
                 users = users,
                 imageLoader = fakeImageLoader,
+                followedUserIds = emptySet(),
+                onFollowClick = {}
             )
         }
 
