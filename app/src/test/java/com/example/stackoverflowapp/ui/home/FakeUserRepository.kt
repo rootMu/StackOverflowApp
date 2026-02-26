@@ -3,7 +3,7 @@ package com.example.stackoverflowapp.ui.home
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.domain.model.User
 
-class FakeTestUserRepository(
+class FakeUserRepository(
     private val result: Result<List<User>>
 ) : UserRepository {
 

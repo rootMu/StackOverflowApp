@@ -6,7 +6,10 @@ import com.example.stackoverflowapp.di.DefaultAppContainer
 
 class StackOverflowApp: Application() {
 
-    val container: AppContainer by lazy {
-        DefaultAppContainer()
+    lateinit var container: AppContainer
+
+    override fun onCreate() {
+        super.onCreate()
+        container = DefaultAppContainer(this)
     }
 }

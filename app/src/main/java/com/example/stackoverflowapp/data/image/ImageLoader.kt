@@ -4,4 +4,5 @@ import android.graphics.Bitmap
 
 interface ImageLoader {
     suspend fun loadBitmap(url: String): Bitmap?
+    fun getCachedBitmap(url: String): Bitmap?
 }

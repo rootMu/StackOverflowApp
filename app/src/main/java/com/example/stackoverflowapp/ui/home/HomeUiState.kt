@@ -21,5 +21,8 @@ sealed interface HomeUiState {
     ) : HomeUiState
 }
 
-internal fun List<User>.toHomeUiState(): HomeUiState =
-    if (isEmpty()) HomeUiState.Empty else HomeUiState.Success(this)
+internal fun List<User>.toHomeUiState(followedUserIds: Set<Int>): HomeUiState =
+    if (isEmpty()) HomeUiState.Empty else HomeUiState.Success(
+        users = this,
+        followedUserIds = followedUserIds
+    )
