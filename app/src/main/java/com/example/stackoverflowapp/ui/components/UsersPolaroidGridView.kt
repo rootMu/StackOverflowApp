@@ -1,7 +1,6 @@
 package com.example.stackoverflowapp.ui.components
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,14 +30,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -69,12 +72,16 @@ fun UsersPolaroidGridView(
     ) {
         items(
             items = users,
-            key = { user -> user.id to (user.id in followedUserIds) }
+            key = { user -> user.id }
         ) { user ->
-            CompactPolaroidUserCard(
+
+            val rememberedFollowClick = remember(user.id, onFollowClick) {
+                { onFollowClick(user.id) }
+            }
+            UserPolaroidCard(
                 user = user,
                 isFollowed = user.id in followedUserIds,
-                onFollowClick = { onFollowClick(user.id) },
+                onFollowClick = rememberedFollowClick,
                 imageLoader = imageLoader
             )
         }
@@ -82,18 +89,18 @@ fun UsersPolaroidGridView(
 }
 
 @Composable
-private fun CompactPolaroidUserCard(
+private fun UserPolaroidCard(
     user: User,
     isFollowed: Boolean,
     onFollowClick: () -> Unit,
     imageLoader: ImageLoader
 ) {
-    val tiltDegrees = tiltForUser(user.id)
+    val tiltDegrees = remember(user.id) { tiltForUser(user.id) }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .rotate(tiltDegrees),
+            .graphicsLayer { rotationZ = tiltDegrees },
         shape = RoundedCornerShape(5.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFEFB))
@@ -114,13 +121,14 @@ private fun CompactPolaroidUserCard(
                     imageLoader = imageLoader,
                     modifier = Modifier.matchParentSize()
                 )
+                val reputationText = remember(user.reputation) { formatReputation(user.reputation) }
 
                 AssistChip(
                     onClick = {},
                     enabled = false,
                     label = {
                         Text(
-                            text = formatReputation(user.reputation),
+                            text = reputationText,
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp
                         )
@@ -134,10 +142,14 @@ private fun CompactPolaroidUserCard(
                         .padding(4.dp)
                 )
 
-                val followLabel = if (isFollowed) {
-                    "Unfollow ${user.displayName}"
-                } else {
-                    "Follow ${user.displayName}"
+                val followLabel = remember(isFollowed, user.displayName) {
+                    if (isFollowed) "Unfollow ${user.displayName}" else "Follow ${user.displayName}"
+                }
+                val starIcon = remember(isFollowed) {
+                    if (isFollowed) Icons.Filled.Star else Icons.Outlined.StarBorder
+                }
+                val starTint = remember(isFollowed) {
+                    if (isFollowed) Color(0xFFF2B705) else Color(0xFF555555)
                 }
 
                 IconButton(
@@ -156,9 +168,9 @@ private fun CompactPolaroidUserCard(
                         shadowElevation = 2.dp
                     ) {
                         Icon(
-                            imageVector = if (isFollowed) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                            imageVector = starIcon,
                             contentDescription = null,
-                            tint = if (isFollowed) Color(0xFFF2B705) else Color(0xFF555555),
+                            tint = starTint,
                             modifier = Modifier.padding(6.dp)
                         )
                     }
@@ -193,26 +205,48 @@ private fun UserPhotoOrPlaceholder(
     imageLoader: ImageLoader,
     modifier: Modifier = Modifier
 ) {
-    val bitmapState by produceState<Bitmap?>(initialValue = null, imageUrl) {
-        value = if (imageUrl.isNullOrBlank()) {
-            null
-        } else {
-            imageLoader.loadBitmap(imageUrl)
+    AsyncImageWithCrossfade(
+        url = imageUrl,
+        imageLoader = imageLoader,
+        displayName = displayName,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun AsyncImageWithCrossfade(
+    url: String?,
+    imageLoader: ImageLoader,
+    displayName: String,
+    modifier: Modifier = Modifier
+) {
+    val cachedBitmap = remember(url) {
+        url?.let { imageLoader.getCachedBitmap(it) }
+    }
+
+    var displayBitmap by remember(url) { mutableStateOf(cachedBitmap) }
+
+    LaunchedEffect(url) {
+        if (url != null && displayBitmap == null) {
+            val result = imageLoader.loadBitmap(url)
+            displayBitmap = result
         }
     }
 
-    if (bitmapState != null) {
-        Image(
-            bitmap = bitmapState!!.asImageBitmap(),
-            contentDescription = "$displayName profile image",
-            contentScale = ContentScale.Crop,
-            modifier = modifier
-        )
-    } else {
-        PolaroidPlaceholderPhoto(
-            displayName = displayName,
-            modifier = modifier
-        )
+    Box(modifier = modifier) {
+        if (displayBitmap != null) {
+            Image(
+                bitmap = displayBitmap!!.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            PolaroidPlaceholderPhoto(
+                displayName = displayName,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 

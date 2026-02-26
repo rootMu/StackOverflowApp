@@ -19,7 +19,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private val viewModel: HomeViewModel by viewModels {
-        HomeViewModelFactory(appContainer.userRepository)
+        HomeViewModelFactory(appContainer.userRepository, appContainer.userStore)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

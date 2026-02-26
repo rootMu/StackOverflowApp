@@ -1,5 +1,6 @@
 package com.example.stackoverflowapp.di
 
+import android.content.Context
 import com.example.stackoverflowapp.data.api.StackOverflowUsersApiImpl
 import com.example.stackoverflowapp.data.api.StackOverflowUsersApi
 import com.example.stackoverflowapp.data.image.HttpImageLoader
@@ -10,6 +11,8 @@ import com.example.stackoverflowapp.data.parser.JsonUsersResponseParser
 import com.example.stackoverflowapp.data.parser.UsersResponseParser
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.data.repo.UserRepositoryImpl
+import com.example.stackoverflowapp.data.storage.SharedPrefsUserStore
+import com.example.stackoverflowapp.data.storage.UserStore
 
 /**
  * Central application-level dependency container.
@@ -29,9 +32,10 @@ import com.example.stackoverflowapp.data.repo.UserRepositoryImpl
 interface AppContainer {
     val userRepository: UserRepository
     val imageLoader: ImageLoader
+    val userStore: UserStore
 }
 
-class DefaultAppContainer: AppContainer {
+class DefaultAppContainer(private val context: Context): AppContainer {
 
     private val httpClient: HttpClient by lazy {
         HttpUrlConnectionClient()
@@ -51,6 +55,10 @@ class DefaultAppContainer: AppContainer {
 
     override val imageLoader: ImageLoader by lazy {
         HttpImageLoader(httpClient)
+    }
+
+    override val userStore: UserStore by lazy {
+        SharedPrefsUserStore(context)
     }
 
 }
