@@ -2,22 +2,21 @@ package com.example.stackoverflowapp.ui.home
 
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.domain.model.User
-import kotlinx.coroutines.yield
+import kotlinx.coroutines.delay
 
-class FakeUserRepository(
-    private val result: Result<List<User>>
-) : UserRepository {
-
+class FakeUserRepository(private var result: Result<List<User>>) : UserRepository {
     var fetchCallCount = 0
-        private set
+    fun setResult(newResult: Result<List<User>>) { result = newResult }
 
     override suspend fun fetchTopUsers(): Result<List<User>> {
         fetchCallCount++
+        delay(10)
         return result
     }
 
     override suspend fun refreshUsers(): Result<List<User>> {
-        yield()
-        return Result.success(listOf(User(1, "Jeff", 100, null)))
+        fetchCallCount++
+        delay(10)
+        return result
     }
 }

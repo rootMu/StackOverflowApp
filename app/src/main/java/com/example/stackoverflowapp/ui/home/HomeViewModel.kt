@@ -28,7 +28,9 @@ class HomeViewModel(
     }
 
     fun loadUsers() {
-        handleUserFetch { userRepository.fetchTopUsers() }
+        viewModelScope.launch {
+            handleUserFetch { userRepository.fetchTopUsers() }
+        }
     }
 
     fun toggleFollow(userId: Int) {
@@ -54,38 +56,30 @@ class HomeViewModel(
         }
     }
 
-    private fun handleUserFetch(block: suspend () -> Result<List<User>>) {
-        viewModelScope.launch {
-            _uiState.value = HomeUiState.Loading
-            val result = block()
+    private suspend fun handleUserFetch(fetcher: suspend () -> Result<List<User>>) {
+        val result = fetcher()
 
-            _uiState.value = result.fold(
-                onSuccess = { users ->
-                    if (users.isEmpty()) {
-                        HomeUiState.Empty
-                    } else {
-                        users.toHomeUiState(followedUserIds)
-                    }
-                },
-                onFailure = {
-                    val current = _uiState.value
-                    if (current is HomeUiState.Success) {
-                        current.copy(isRefreshing = false)
-                    } else {
-                        HomeUiState.Error(it.message ?: "Something went wrong")
-                    }
+        val currentState = _uiState.value
+
+        _uiState.value = result.fold(
+            onSuccess = { users ->
+                if (users.isEmpty()) HomeUiState.Empty
+                else HomeUiState.Success(users, followedUserIds, isRefreshing = false)
+            },
+            onFailure = { error ->
+                if (currentState is HomeUiState.Success) {
+                    currentState.copy(isRefreshing = false)
+                } else {
+                    HomeUiState.Error(error.message ?: "Unknown Error")
                 }
-
-            )
-        }
+            }
+        )
     }
 
     private fun updateUiState() {
         if (_uiState.value !is HomeUiState.Success) return
         val current = _uiState.value as HomeUiState.Success
-        viewModelScope.launch {
-            _uiState.value = current.copy(followedUserIds = followedUserIds)
-        }
+        _uiState.value = current.copy(followedUserIds = followedUserIds)
     }
 
 
