@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.SearchOff
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun EmptyStateView(
+    showFavouritesOnly: Boolean = false,
     title: String,
     message: String,
     modifier: Modifier = Modifier
@@ -33,8 +35,10 @@ fun EmptyStateView(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
+        val icon = if(showFavouritesOnly) Icons.Outlined.Star else Icons.Outlined.SearchOff
+
         Icon(
-            imageVector = Icons.Outlined.SearchOff,
+            imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(80.dp),
             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)

@@ -1,18 +1,22 @@
 package com.example.stackoverflowapp.ui.home
 
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.data.storage.UserStore
 import com.example.stackoverflowapp.domain.model.User
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.text.contains
 
 class HomeViewModel(
     private val userRepository: UserRepository,
@@ -22,7 +26,7 @@ class HomeViewModel(
     var sortOrder by mutableStateOf(SortOrder.REPUTATION_DESC)
         private set
 
-    var showFavoritesOnly by mutableStateOf(false)
+    var showFavouritesOnly by mutableStateOf(false)
         private set
 
     fun onSortOrderChange(newOrder: SortOrder) {
@@ -30,7 +34,7 @@ class HomeViewModel(
     }
 
     fun toggleFavoritesFilter() {
-        showFavoritesOnly = !showFavoritesOnly
+        showFavouritesOnly = !showFavouritesOnly
     }
 
     var searchQuery by mutableStateOf("")
@@ -40,22 +44,48 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    val filteredUsers by derivedStateOf {
-        val state = uiState.value
+    val filteredUsers: StateFlow<List<User>> = combine(
+        _uiState,
+        snapshotFlow { searchQuery },
+        snapshotFlow { sortOrder },
+        snapshotFlow { showFavouritesOnly }
+    ) { state, query, sort, favorites ->
         if (state is HomeUiState.Success) {
             state.users
-                .filter { it.displayName.contains(searchQuery, ignoreCase = true) }
-                .filter { if (showFavoritesOnly) it.id in followedUserIds else true }
-                .sortedWith(
-                    when (sortOrder) {
-                    SortOrder.NAME_ASC -> compareBy { it.displayName.lowercase() }
-                    SortOrder.REPUTATION_DESC -> compareByDescending { it.reputation }
-                    SortOrder.REPUTATION_ASC -> compareBy { it.reputation }
-                })
+                .filter { it.displayName.contains(query, ignoreCase = true) }
+                .filter { if (favorites) it.id in followedUserIds else true }
+                .sortedWith(getComparator(sort))
         } else {
             emptyList()
         }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    private fun getComparator(sort: SortOrder) = when (sort) {
+        SortOrder.NAME_ASC -> compareBy<User> { it.displayName.lowercase() }
+        SortOrder.REPUTATION_DESC -> compareByDescending { it.reputation }
+        SortOrder.REPUTATION_ASC -> compareBy { it.reputation }
     }
+
+//    val filteredUsers by derivedStateOf {
+//        val state = uiState.value
+//        if (state is HomeUiState.Success) {
+//            state.users
+//                .filter { it.displayName.contains(searchQuery, ignoreCase = true) }
+//                .filter { if (showFavoritesOnly) it.id in followedUserIds else true }
+//                .sortedWith(
+//                    when (sortOrder) {
+//                    SortOrder.NAME_ASC -> compareBy { it.displayName.lowercase() }
+//                    SortOrder.REPUTATION_DESC -> compareByDescending { it.reputation }
+//                    SortOrder.REPUTATION_ASC -> compareBy { it.reputation }
+//                })
+//        } else {
+//            emptyList()
+//        }
+//    }
 
     init {
         loadUsers()
