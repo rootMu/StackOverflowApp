@@ -2,7 +2,6 @@ package com.example.stackoverflowapp.ui.components
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.stackoverflowapp.data.image.ImageLoader
@@ -32,7 +31,7 @@ fun HomeScreen(
 
         is HomeUiState.Error -> ErrorStateView(
             title = "404 - Users Not Found \uD83D\uDD75\uFE0F\u200D♂\uFE0F",
-            message =  "We couldn't connect to StackOverflow. Please check your connection and try again.",
+            message = "We couldn't connect to StackOverflow. Please check your connection and try again.",
             technicalDetails = uiState.message,
             onRetry = onRetry
         )

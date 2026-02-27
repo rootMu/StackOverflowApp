@@ -25,8 +25,13 @@ class HomeViewModel(
     var showFavoritesOnly by mutableStateOf(false)
         private set
 
-    fun onSortOrderChange(newOrder: SortOrder) { sortOrder = newOrder }
-    fun toggleFavoritesFilter() { showFavoritesOnly = !showFavoritesOnly }
+    fun onSortOrderChange(newOrder: SortOrder) {
+        sortOrder = newOrder
+    }
+
+    fun toggleFavoritesFilter() {
+        showFavoritesOnly = !showFavoritesOnly
+    }
 
     var searchQuery by mutableStateOf("")
         private set
@@ -40,10 +45,9 @@ class HomeViewModel(
         if (state is HomeUiState.Success) {
             state.users
                 .filter { it.displayName.contains(searchQuery, ignoreCase = true) }
-                // 2. Filter by Favorites
                 .filter { if (showFavoritesOnly) it.id in followedUserIds else true }
-                // 3. Apply Sorting
-                .sortedWith(when (sortOrder) {
+                .sortedWith(
+                    when (sortOrder) {
                     SortOrder.NAME_ASC -> compareBy { it.displayName.lowercase() }
                     SortOrder.REPUTATION_DESC -> compareByDescending { it.reputation }
                     SortOrder.REPUTATION_ASC -> compareBy { it.reputation }
