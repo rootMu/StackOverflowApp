@@ -22,6 +22,7 @@ class UsersPolaroidGridViewTest {
 
     val fakeImageLoader = object : ImageLoader {
         override suspend fun loadBitmap(url: String): Bitmap? = null
+        override fun getCachedBitmap(url: String): Bitmap? = null
     }
 
     @Test

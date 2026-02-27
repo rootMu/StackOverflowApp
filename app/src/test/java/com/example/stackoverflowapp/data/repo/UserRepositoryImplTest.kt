@@ -5,13 +5,23 @@ import com.example.stackoverflowapp.data.api.BadgeCountsDto
 import com.example.stackoverflowapp.data.api.StackOverflowUsersApi
 import com.example.stackoverflowapp.data.api.UserDto
 import com.example.stackoverflowapp.data.api.UsersResponseDto
+import com.example.stackoverflowapp.data.storage.FakeUserDatabase
 import com.example.stackoverflowapp.domain.model.User
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class UserRepositoryImplTest {
+
+    private lateinit var fakeDatabase: FakeUserDatabase
+
+    @Before
+    fun setup() {
+        fakeDatabase = FakeUserDatabase()
+    }
 
     @Test
     fun `fetchTopUsers() returns mapped domain users when Api Succeeds`() = runTest {
@@ -105,7 +115,7 @@ class UserRepositoryImplTest {
         val api = FakeStackOverflowUsersApi(
             result = ApiResult.Success(UsersResponseDto(items = emptyList()))
         )
-        val repository = UserRepositoryImpl(api)
+        val repository = UserRepositoryImpl(api, fakeDatabase)
 
         repository.fetchTopUsers()
 
@@ -114,11 +124,43 @@ class UserRepositoryImplTest {
         assertEquals(20, api.lastPageSize)
     }
 
+    @Test
+    fun `fetchTopUsers() returns local data and skips API when database is not empty`() = runTest {
+        val localUser = User(1, "Cached User", 1000, null)
+        fakeDatabase.insertUsers(listOf(localUser))
+        val api = FakeStackOverflowUsersApi(result = ApiResult.Success(UsersResponseDto(emptyList())))
+        val repository = UserRepositoryImpl(api, fakeDatabase)
+
+        val result = repository.fetchTopUsers()
+
+        assertTrue(result.isSuccess)
+        assertEquals("Cached User", result.getOrThrow().first().displayName)
+        assertEquals(0, api.callCount)
+    }
+
+    @Test
+    fun `refreshUsers() clears database and force calls API`() = runTest {
+        val olderUser = User(1, "Old Data", 10, null)
+        fakeDatabase.insertUsers(listOf(olderUser))
+        val api = FakeStackOverflowUsersApi(result = ApiResult.Success(
+            UsersResponseDto(listOf(userDto(2, "Fresh Data", 20, null)))
+        ))
+        val repository = UserRepositoryImpl(api, fakeDatabase)
+
+        val result = repository.refreshUsers()
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, fakeDatabase.getAllUsers().size)
+        assertEquals("Fresh Data", fakeDatabase.getAllUsers().first().displayName)
+        assertFalse(fakeDatabase.getAllUsers().contains(olderUser))
+        assertEquals(1, api.callCount)
+    }
+
     private suspend fun fetchFromRepo(
         apiResult: ApiResult<UsersResponseDto>
     ): Result<List<User>> {
         val api = FakeStackOverflowUsersApi(result = apiResult)
-        val repository = UserRepositoryImpl(api)
+        val repository = UserRepositoryImpl(api, fakeDatabase)
         return repository.fetchTopUsers()
     }
 

@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper
 import com.example.stackoverflowapp.domain.model.User
 import androidx.core.database.sqlite.transaction
 
-class UserDatabase(context: Context) :
+open class UserDatabase(context: Context?) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
@@ -40,7 +40,7 @@ class UserDatabase(context: Context) :
         onCreate(db)
     }
 
-    fun insertUsers(users: List<User>) {
+    open fun insertUsers(users: List<User>) {
         val db = writableDatabase
         db.transaction {
             try {
@@ -58,7 +58,7 @@ class UserDatabase(context: Context) :
         }
     }
 
-    fun getAllUsers(): List<User> {
+    open fun getAllUsers(): List<User> {
         val users = mutableListOf<User>()
         val db = readableDatabase
         val cursor: Cursor = db.query(
@@ -86,7 +86,7 @@ class UserDatabase(context: Context) :
         return users
     }
 
-    fun clearAllUsers() {
+    open fun clearAllUsers() {
         writableDatabase.delete(TABLE_USERS, null, null)
     }
 
