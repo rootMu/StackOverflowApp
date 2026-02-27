@@ -124,6 +124,73 @@ class HomeViewModelTest {
         assertEquals(2, viewModel.filteredUsers.size)
     }
 
+    @Test
+    fun `filteredUsers reacts to search query case-insensitively`() = runTest {
+        val user1 = createUser(id = 1, name = "Jeff Atwood")
+        val user2 = createUser(id = 2, name = "Joel Spolsky")
+        val (viewModel, _) = initAndGetSuccess(listOf(user1, user2))
+
+        viewModel.onSearchQueryChange("jeff")
+        assertEquals(1, viewModel.filteredUsers.size)
+        assertEquals("Jeff Atwood", viewModel.filteredUsers[0].displayName)
+
+        viewModel.onSearchQueryChange("")
+        assertEquals(2, viewModel.filteredUsers.size)
+    }
+
+    @Test
+    fun `filteredUsers filters by favorites correctly`() = runTest {
+        val user1 = createUser(id = 1, name = "Jeff")
+        val user2 = createUser(id = 2, name = "Joel")
+        val store = FakeUserStore(initialIds = setOf(2))
+        val (viewModel, _) = initAndGetSuccess(listOf(user1, user2), store)
+
+        viewModel.toggleFavoritesFilter()
+
+        assertEquals(1, viewModel.filteredUsers.size)
+        assertEquals(2, viewModel.filteredUsers[0].id)
+        assertEquals("Joel", viewModel.filteredUsers[0].displayName)
+    }
+
+    @Test
+    fun `filteredUsers sorts by reputation ascending and descending`() = runTest {
+        val userLow = createUser(id = 1, name = "Low").copy(reputation = 10)
+        val userHigh = createUser(id = 2, name = "High").copy(reputation = 1000)
+        val (viewModel, _) = initAndGetSuccess(listOf(userLow, userHigh))
+
+        assertEquals(1000, viewModel.filteredUsers[0].reputation)
+
+        viewModel.onSortOrderChange(HomeViewModel.SortOrder.REPUTATION_ASC)
+        assertEquals(10, viewModel.filteredUsers[0].reputation)
+    }
+
+    @Test
+    fun `filteredUsers sorts by name A-Z`() = runTest {
+        val userB = createUser(id = 1, name = "Bob")
+        val userA = createUser(id = 2, name = "Alice")
+        val (viewModel, _) = initAndGetSuccess(listOf(userB, userA))
+
+        viewModel.onSortOrderChange(HomeViewModel.SortOrder.NAME_ASC)
+
+        assertEquals("Alice", viewModel.filteredUsers[0].displayName)
+        assertEquals("Bob", viewModel.filteredUsers[1].displayName)
+    }
+
+    @Test
+    fun `filteredUsers combines multiple filters correctly`() = runTest {
+        val user1 = createUser(id = 1, name = "Apple").copy(reputation = 10)
+        val user2 = createUser(id = 2, name = "April").copy(reputation = 500)
+        val store = FakeUserStore(initialIds = setOf(1, 2))
+        val (viewModel, _) = initAndGetSuccess(listOf(user1, user2), store)
+
+        viewModel.onSearchQueryChange("Ap")
+        viewModel.toggleFavoritesFilter()
+        viewModel.onSortOrderChange(HomeViewModel.SortOrder.REPUTATION_DESC)
+
+        assertEquals(2, viewModel.filteredUsers.size)
+        assertEquals("April", viewModel.filteredUsers[0].displayName)
+    }
+
     private fun TestScope.initAndGetSuccess(
         users: List<User> = emptyList(),
         store: UserStore = FakeUserStore()

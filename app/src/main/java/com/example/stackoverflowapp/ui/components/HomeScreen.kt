@@ -10,10 +10,10 @@ import com.example.stackoverflowapp.ui.home.HomeUiState
 
 @Composable
 fun HomeScreen(
+    gridState: LazyGridState,
     uiState: HomeUiState,
     users: List<User>,
     searchQuery: String,
-    gridState: LazyGridState,
     imageLoader: ImageLoader,
     onRetry: () -> Unit,
     onFollowClick: (Int) -> Unit,
@@ -31,7 +31,7 @@ fun HomeScreen(
 
         is HomeUiState.Error -> ErrorStateView(
             title = "404 - Users Not Found \uD83D\uDD75\uFE0F\u200D♂\uFE0F",
-            message =  "We couldn't connect to StackOverflow. Please check your connection and try again.",
+            message = "We couldn't connect to StackOverflow. Please check your connection and try again.",
             technicalDetails = uiState.message,
             onRetry = onRetry
         )
@@ -44,7 +44,7 @@ fun HomeScreen(
         } else {
             UsersPolaroidGridView(
                 gridState = gridState,
-                users = users.takeIf{ it.isNotEmpty() }?:uiState.users,
+                users = users,
                 followedUserIds = uiState.followedUserIds,
                 modifier = modifier,
                 onFollowClick = onFollowClick,

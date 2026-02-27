@@ -83,7 +83,8 @@ fun UsersPolaroidGridView(
                 user = user,
                 isFollowed = user.id in followedUserIds,
                 onFollowClick = { onFollowClick(user.id) },
-                imageLoader = imageLoader
+                imageLoader = imageLoader,
+                modifier = Modifier.animateItem()
             )
         }
     }
@@ -94,13 +95,14 @@ private fun UserPolaroidCard(
     user: User,
     isFollowed: Boolean,
     onFollowClick: () -> Unit,
-    imageLoader: ImageLoader
+    imageLoader: ImageLoader,
+    modifier: Modifier
 ) {
     val tiltDegrees = remember(user.id) { tiltForUser(user.id) }
     val reputationText = remember(user.reputation) { formatReputation(user.reputation) }
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .graphicsLayer { rotationZ = tiltDegrees },
         shape = RoundedCornerShape(5.dp),
@@ -225,6 +227,7 @@ private fun PolaroidPlaceholderPhoto(displayName: String, modifier: Modifier = M
 
 private fun tiltForUser(id: Int): Float =
     ((abs(id * 1103515245 + 12345) % 500).toFloat() / 100f) - 2.5f
+
 private fun formatReputation(reputation: Int): String = when {
     reputation >= 1_000_000 -> "%.1fM".format(reputation / 1_000_000f).replace(".0", "")
     reputation >= 1_000 -> "%.1fk".format(reputation / 1_000f).replace(".0", "")
