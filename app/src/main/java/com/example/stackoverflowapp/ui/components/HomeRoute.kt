@@ -66,9 +66,11 @@ fun HomeRoute(
 
     Scaffold(
         topBar = {
-            Column(modifier = modifier
-                .fillMaxWidth()
-                .background(appBarColor)) {
+            Column(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .background(appBarColor)
+            ) {
                 Spacer(
                     Modifier
                         .background(MaterialTheme.colorScheme.surface)

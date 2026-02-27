@@ -6,7 +6,9 @@ import kotlinx.coroutines.delay
 
 class FakeUserRepository(private var result: Result<List<User>>) : UserRepository {
     var fetchCallCount = 0
-    fun setResult(newResult: Result<List<User>>) { result = newResult }
+    fun setResult(newResult: Result<List<User>>) {
+        result = newResult
+    }
 
     override suspend fun fetchTopUsers(): Result<List<User>> {
         fetchCallCount++

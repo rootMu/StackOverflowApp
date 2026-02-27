@@ -1,4 +1,6 @@
 import android.graphics.Bitmap
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,10 +35,12 @@ class UsersPolaroidGridViewTest {
 
         composeRule.setContent {
             UsersPolaroidGridView(
+                gridState = rememberLazyGridState(),
                 users = users,
                 followedUserIds = emptySet(),
                 onFollowClick = {},
-                imageLoader = fakeImageLoader
+                imageLoader = fakeImageLoader,
+                contentPadding = PaddingValues.Absolute()
             )
         }
 
@@ -53,10 +57,12 @@ class UsersPolaroidGridViewTest {
 
         composeRule.setContent {
             UsersPolaroidGridView(
+                gridState = rememberLazyGridState(),
                 users = users,
                 followedUserIds = setOf(1),
                 onFollowClick = {},
-                imageLoader = fakeImageLoader
+                imageLoader = fakeImageLoader,
+                contentPadding = PaddingValues.Absolute()
             )
         }
 
@@ -75,10 +81,12 @@ class UsersPolaroidGridViewTest {
 
         composeRule.setContent {
             UsersPolaroidGridView(
+                gridState = rememberLazyGridState(),
                 users = users,
                 followedUserIds = emptySet(),
                 onFollowClick = { id -> clickedId = id },
-                imageLoader = fakeImageLoader
+                imageLoader = fakeImageLoader,
+                contentPadding = PaddingValues.Absolute()
             )
         }
 
@@ -99,6 +107,7 @@ class UsersPolaroidGridViewTest {
             var followedIds by remember { mutableStateOf(setOf<Int>()) }
 
             UsersPolaroidGridView(
+                gridState = rememberLazyGridState(),
                 users = users,
                 followedUserIds = followedIds,
                 onFollowClick = { userId ->
@@ -106,7 +115,8 @@ class UsersPolaroidGridViewTest {
                     followedIds =
                         if (userId in followedIds) followedIds - userId else followedIds + userId
                 },
-                imageLoader = fakeImageLoader
+                imageLoader = fakeImageLoader,
+                contentPadding = PaddingValues.Absolute()
             )
         }
 

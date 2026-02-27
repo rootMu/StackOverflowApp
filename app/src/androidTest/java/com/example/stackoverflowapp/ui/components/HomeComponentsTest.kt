@@ -1,6 +1,8 @@
 package com.example.stackoverflowapp.ui.components
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasProgressBarRangeInfo
@@ -60,10 +62,12 @@ class HomeComponentsTest {
 
         composeRule.setContent {
             UsersPolaroidGridView(
+                gridState = rememberLazyGridState(),
                 users = users,
                 followedUserIds = emptySet(),
                 onFollowClick = {},
-                imageLoader = fakeImageLoader
+                imageLoader = fakeImageLoader,
+                contentPadding = PaddingValues.Absolute()
             )
         }
 

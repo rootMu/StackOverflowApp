@@ -1,6 +1,8 @@
 package com.example.stackoverflowapp.ui.components
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -26,10 +28,13 @@ class HomeScreenTest {
     fun loadingState_showsLoadingMessage() {
         composeRule.setContent {
             HomeScreen(
+                gridState = rememberLazyGridState(),
                 uiState = HomeUiState.Loading,
+                users = emptyList(),
                 imageLoader = fakeImageLoader,
                 onRetry = {},
-                onFollowClick = {}
+                onFollowClick = {},
+                contentPadding = PaddingValues.Absolute()
             )
         }
 
@@ -40,10 +45,13 @@ class HomeScreenTest {
     fun emptyState_showsEmptyMessage() {
         composeRule.setContent {
             HomeScreen(
+                gridState = rememberLazyGridState(),
                 uiState = HomeUiState.Empty,
+                users = emptyList(),
                 imageLoader = fakeImageLoader,
                 onRetry = {},
-                onFollowClick = {}
+                onFollowClick = {},
+                contentPadding = PaddingValues.Absolute()
             )
         }
 
@@ -56,10 +64,13 @@ class HomeScreenTest {
 
         composeRule.setContent {
             HomeScreen(
+                gridState = rememberLazyGridState(),
                 uiState = HomeUiState.Error("Network down"),
+                users = emptyList(),
                 imageLoader = fakeImageLoader,
                 onRetry = { retryCount++ },
-                onFollowClick = {}
+                onFollowClick = {},
+                contentPadding = PaddingValues.Absolute()
             )
         }
 
@@ -79,10 +90,13 @@ class HomeScreenTest {
 
         composeRule.setContent {
             HomeScreen(
+                gridState = rememberLazyGridState(),
                 uiState = HomeUiState.Success(users),
+                users = users,
                 imageLoader = fakeImageLoader,
                 onRetry = {},
-                onFollowClick = {}
+                onFollowClick = {},
+                contentPadding = PaddingValues.Absolute()
             )
         }
 
@@ -98,10 +112,12 @@ class HomeScreenTest {
 
         composeRule.setContent {
             UsersPolaroidGridView(
+                gridState = rememberLazyGridState(),
                 users = users,
                 imageLoader = fakeImageLoader,
                 followedUserIds = emptySet(),
-                onFollowClick = {}
+                onFollowClick = {},
+                contentPadding = PaddingValues.Absolute()
             )
         }
 

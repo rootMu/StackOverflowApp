@@ -135,7 +135,12 @@ class HomeViewModelTest {
         return viewModel to state
     }
 
-    private fun TestScope.verifyToggle(viewModel: HomeViewModel, store: UserStore, id: Int, shouldBeFollowed: Boolean) {
+    private fun TestScope.verifyToggle(
+        viewModel: HomeViewModel,
+        store: UserStore,
+        id: Int,
+        shouldBeFollowed: Boolean
+    ) {
         viewModel.toggleFollow(id)
         runCurrent()
         assertEquals(shouldBeFollowed, id in viewModel.followedUserIds)
