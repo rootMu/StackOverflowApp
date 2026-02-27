@@ -25,8 +25,13 @@ class HomeViewModel(
     var showFavoritesOnly by mutableStateOf(false)
         private set
 
-    fun onSortOrderChange(newOrder: SortOrder) { sortOrder = newOrder }
-    fun toggleFavoritesFilter() { showFavoritesOnly = !showFavoritesOnly }
+    fun onSortOrderChange(newOrder: SortOrder) {
+        sortOrder = newOrder
+    }
+
+    fun toggleFavoritesFilter() {
+        showFavoritesOnly = !showFavoritesOnly
+    }
 
     var searchQuery by mutableStateOf("")
         private set
