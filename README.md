@@ -163,7 +163,7 @@ The app supports both cached user lists and richer detail fetches.
 1. **Prerequisites**: Install [Android Studio](https://developer.android.com/studio)
 2. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/StackOverflowApp.git
+   git clone https://github.com/rootMu/StackOverflowApp.git
    ```
 3. **Open Project**: Open the project folder in Android Studio.
 4. **Sync Gradle**: Wait for Android Studio to finish syncing the Gradle files.
