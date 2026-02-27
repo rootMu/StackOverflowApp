@@ -14,6 +14,7 @@ fun HomeScreen(
     uiState: HomeUiState,
     users: List<User>,
     searchQuery: String,
+    showFavouritesOnly: Boolean,
     imageLoader: ImageLoader,
     onRetry: () -> Unit,
     onFollowClick: (Int) -> Unit,
@@ -36,10 +37,16 @@ fun HomeScreen(
             onRetry = onRetry
         )
 
-        is HomeUiState.Success -> if (users.isEmpty() && searchQuery.isNotBlank()) {
+        is HomeUiState.Success -> if (users.isEmpty()) {
+
+            val title = if(showFavouritesOnly) "No favourites found" else "No users found"
+
+            val message = if(searchQuery.isBlank()) "" else "We couldn't find any users matching '$searchQuery'."
+
             EmptyStateView(
-                title = "No users found \uD83D\uDD0D",
-                message = "We couldn't find any users matching '$searchQuery'."
+                showFavouritesOnly = showFavouritesOnly,
+                title = title,
+                message = message
             )
         } else {
             UsersPolaroidGridView(

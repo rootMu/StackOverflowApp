@@ -34,9 +34,11 @@ fun HomeRoute(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val users by viewModel.filteredUsers.collectAsState()
+
     val gridState = rememberLazyGridState()
 
-    LaunchedEffect(viewModel.searchQuery, viewModel.sortOrder, viewModel.showFavoritesOnly) {
+    LaunchedEffect(viewModel.searchQuery, viewModel.sortOrder, viewModel.showFavouritesOnly) {
         gridState.scrollToItem(0)
     }
 
@@ -85,7 +87,8 @@ fun HomeRoute(
             HomeScreen(
                 gridState = gridState,
                 uiState = uiState,
-                users = viewModel.filteredUsers,
+                users = users,
+                showFavouritesOnly = viewModel.showFavouritesOnly,
                 searchQuery = viewModel.searchQuery,
                 imageLoader = imageLoader,
                 onRetry = viewModel::loadUsers,

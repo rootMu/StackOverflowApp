@@ -23,11 +23,11 @@ fun FilterRow(viewModel: HomeViewModel) {
     ) {
         item {
             FilterChip(
-                selected = viewModel.showFavoritesOnly,
+                selected = viewModel.showFavouritesOnly,
                 onClick = viewModel::toggleFavoritesFilter,
                 label = { Text("Favorites") },
                 leadingIcon = {
-                    if (viewModel.showFavoritesOnly) Icon(
+                    if (viewModel.showFavouritesOnly) Icon(
                         Icons.Default.Check,
                         null
                     )

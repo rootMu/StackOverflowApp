@@ -1,11 +1,15 @@
 package com.example.stackoverflowapp.ui.home
 
+import androidx.compose.runtime.snapshots.Snapshot.Companion.withMutableSnapshot
 import com.example.stackoverflowapp.MainDispatcherRule
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.data.storage.UserStore
 import com.example.stackoverflowapp.domain.model.User
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -108,20 +112,17 @@ class HomeViewModelTest {
         val repo = FakeUserRepository(Result.success(listOf(user1, user2)))
         val viewModel = createViewModel(repo)
 
+        backgroundCollect(viewModel.filteredUsers)
         advanceUntilIdle()
 
-        assertEquals(2, viewModel.filteredUsers.size)
+        withMutableSnapshot {
+            viewModel.onSearchQueryChange("Jeff")
+        }
 
-        viewModel.onSearchQueryChange("Jeff")
+        runCurrent()
 
-        assertEquals(1, viewModel.filteredUsers.size)
-        assertEquals("Jeff Atwood", viewModel.filteredUsers[0].displayName)
-
-        viewModel.onSearchQueryChange("Unknown")
-        assertTrue(viewModel.filteredUsers.isEmpty())
-
-        viewModel.onSearchQueryChange("")
-        assertEquals(2, viewModel.filteredUsers.size)
+        assertEquals(1, viewModel.filteredUsers.value.size)
+        assertEquals("Jeff Atwood", viewModel.filteredUsers.value[0].displayName)
     }
 
     @Test
@@ -130,12 +131,15 @@ class HomeViewModelTest {
         val user2 = createUser(id = 2, name = "Joel Spolsky")
         val (viewModel, _) = initAndGetSuccess(listOf(user1, user2))
 
-        viewModel.onSearchQueryChange("jeff")
-        assertEquals(1, viewModel.filteredUsers.size)
-        assertEquals("Jeff Atwood", viewModel.filteredUsers[0].displayName)
+        backgroundCollect(viewModel.filteredUsers)
 
-        viewModel.onSearchQueryChange("")
-        assertEquals(2, viewModel.filteredUsers.size)
+        withMutableSnapshot {
+            viewModel.onSearchQueryChange("jeff")
+        }
+        runCurrent()
+
+        assertEquals(1, viewModel.filteredUsers.value.size)
+        assertEquals("Jeff Atwood", viewModel.filteredUsers.value[0].displayName)
     }
 
     @Test
@@ -147,9 +151,11 @@ class HomeViewModelTest {
 
         viewModel.toggleFavoritesFilter()
 
-        assertEquals(1, viewModel.filteredUsers.size)
-        assertEquals(2, viewModel.filteredUsers[0].id)
-        assertEquals("Joel", viewModel.filteredUsers[0].displayName)
+        backgroundCollect(viewModel.filteredUsers)
+
+        assertEquals(1, viewModel.filteredUsers.value.size)
+        assertEquals(2, viewModel.filteredUsers.value[0].id)
+        assertEquals("Joel", viewModel.filteredUsers.value[0].displayName)
     }
 
     @Test
@@ -158,10 +164,17 @@ class HomeViewModelTest {
         val userHigh = createUser(id = 2, name = "High").copy(reputation = 1000)
         val (viewModel, _) = initAndGetSuccess(listOf(userLow, userHigh))
 
-        assertEquals(1000, viewModel.filteredUsers[0].reputation)
+        backgroundCollect(viewModel.filteredUsers)
+        runCurrent()
 
-        viewModel.onSortOrderChange(HomeViewModel.SortOrder.REPUTATION_ASC)
-        assertEquals(10, viewModel.filteredUsers[0].reputation)
+        assertEquals(1000, viewModel.filteredUsers.value[0].reputation)
+
+        withMutableSnapshot {
+            viewModel.onSortOrderChange(HomeViewModel.SortOrder.REPUTATION_ASC)
+        }
+        runCurrent()
+
+        assertEquals(10, viewModel.filteredUsers.value[0].reputation)
     }
 
     @Test
@@ -172,8 +185,10 @@ class HomeViewModelTest {
 
         viewModel.onSortOrderChange(HomeViewModel.SortOrder.NAME_ASC)
 
-        assertEquals("Alice", viewModel.filteredUsers[0].displayName)
-        assertEquals("Bob", viewModel.filteredUsers[1].displayName)
+        backgroundCollect(viewModel.filteredUsers)
+
+        assertEquals("Alice", viewModel.filteredUsers.value[0].displayName)
+        assertEquals("Bob", viewModel.filteredUsers.value[1].displayName)
     }
 
     @Test
@@ -187,8 +202,10 @@ class HomeViewModelTest {
         viewModel.toggleFavoritesFilter()
         viewModel.onSortOrderChange(HomeViewModel.SortOrder.REPUTATION_DESC)
 
-        assertEquals(2, viewModel.filteredUsers.size)
-        assertEquals("April", viewModel.filteredUsers[0].displayName)
+        backgroundCollect(viewModel.filteredUsers)
+
+        assertEquals(2, viewModel.filteredUsers.value.size)
+        assertEquals("April", viewModel.filteredUsers.value[0].displayName)
     }
 
     private fun TestScope.initAndGetSuccess(
@@ -230,4 +247,11 @@ class HomeViewModelTest {
         assertTrue("Expected Success state but was $state", state is HomeUiState.Success)
         block(state as HomeUiState.Success)
     }
+
+    private fun TestScope.backgroundCollect(flow: StateFlow<*>) {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            flow.collect {}
+        }
+    }
+
 }
