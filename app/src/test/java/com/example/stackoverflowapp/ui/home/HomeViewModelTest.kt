@@ -130,10 +130,12 @@ class HomeViewModelTest {
         val user2 = createUser(id = 2, name = "Joel Spolsky")
         val (viewModel, _) = initAndGetSuccess(listOf(user1, user2))
 
+        // 1. Search for "jeff" (lowercase)
         viewModel.onSearchQueryChange("jeff")
         assertEquals(1, viewModel.filteredUsers.size)
         assertEquals("Jeff Atwood", viewModel.filteredUsers[0].displayName)
 
+        // 2. Clear search
         viewModel.onSearchQueryChange("")
         assertEquals(2, viewModel.filteredUsers.size)
     }
@@ -142,9 +144,10 @@ class HomeViewModelTest {
     fun `filteredUsers filters by favorites correctly`() = runTest {
         val user1 = createUser(id = 1, name = "Jeff")
         val user2 = createUser(id = 2, name = "Joel")
-        val store = FakeUserStore(initialIds = setOf(2))
+        val store = FakeUserStore(initialIds = setOf(2)) // Joel is followed
         val (viewModel, _) = initAndGetSuccess(listOf(user1, user2), store)
 
+        // Enable favorites filter
         viewModel.toggleFavoritesFilter()
 
         assertEquals(1, viewModel.filteredUsers.size)
@@ -158,8 +161,10 @@ class HomeViewModelTest {
         val userHigh = createUser(id = 2, name = "High").copy(reputation = 1000)
         val (viewModel, _) = initAndGetSuccess(listOf(userLow, userHigh))
 
+        // 1. Test Reputation Descending (Default)
         assertEquals(1000, viewModel.filteredUsers[0].reputation)
 
+        // 2. Change to Reputation Ascending
         viewModel.onSortOrderChange(HomeViewModel.SortOrder.REPUTATION_ASC)
         assertEquals(10, viewModel.filteredUsers[0].reputation)
     }
@@ -183,12 +188,13 @@ class HomeViewModelTest {
         val store = FakeUserStore(initialIds = setOf(1, 2))
         val (viewModel, _) = initAndGetSuccess(listOf(user1, user2), store)
 
+        // Filter by name "Ap", Favorites Only, and Sort by Reputation Desc
         viewModel.onSearchQueryChange("Ap")
         viewModel.toggleFavoritesFilter()
         viewModel.onSortOrderChange(HomeViewModel.SortOrder.REPUTATION_DESC)
 
         assertEquals(2, viewModel.filteredUsers.size)
-        assertEquals("April", viewModel.filteredUsers[0].displayName)
+        assertEquals("April", viewModel.filteredUsers[0].displayName) // High rep first
     }
 
     private fun TestScope.initAndGetSuccess(

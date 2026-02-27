@@ -2,6 +2,7 @@ package com.example.stackoverflowapp.ui.components
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.stackoverflowapp.data.image.ImageLoader
