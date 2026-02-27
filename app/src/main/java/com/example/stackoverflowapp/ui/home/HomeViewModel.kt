@@ -70,23 +70,6 @@ class HomeViewModel(
         SortOrder.REPUTATION_ASC -> compareBy { it.reputation }
     }
 
-//    val filteredUsers by derivedStateOf {
-//        val state = uiState.value
-//        if (state is HomeUiState.Success) {
-//            state.users
-//                .filter { it.displayName.contains(searchQuery, ignoreCase = true) }
-//                .filter { if (showFavoritesOnly) it.id in followedUserIds else true }
-//                .sortedWith(
-//                    when (sortOrder) {
-//                    SortOrder.NAME_ASC -> compareBy { it.displayName.lowercase() }
-//                    SortOrder.REPUTATION_DESC -> compareByDescending { it.reputation }
-//                    SortOrder.REPUTATION_ASC -> compareBy { it.reputation }
-//                })
-//        } else {
-//            emptyList()
-//        }
-//    }
-
     init {
         loadUsers()
     }
