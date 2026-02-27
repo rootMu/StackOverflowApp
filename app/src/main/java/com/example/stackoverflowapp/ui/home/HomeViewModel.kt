@@ -1,5 +1,6 @@
 package com.example.stackoverflowapp.ui.home
 
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -18,10 +19,27 @@ class HomeViewModel(
     private val userStore: UserStore
 ) : ViewModel() {
 
+    var searchQuery by mutableStateOf("")
+        private set
     var followedUserIds by mutableStateOf(userStore.getFollowedUserIds())
         private set
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    val filteredUsers by derivedStateOf {
+        val state = uiState.value
+        if (state is HomeUiState.Success) {
+            if (searchQuery.isBlank()) {
+                state.users
+            } else {
+                state.users.filter { user ->
+                    user.displayName.contains(searchQuery, ignoreCase = true)
+                }
+            }
+        } else {
+            emptyList()
+        }
+    }
 
     init {
         loadUsers()
@@ -54,6 +72,10 @@ class HomeViewModel(
         viewModelScope.launch {
             handleUserFetch { userRepository.refreshUsers() }
         }
+    }
+
+    fun onSearchQueryChange(newQuery: String) {
+        searchQuery = newQuery
     }
 
     private suspend fun handleUserFetch(fetcher: suspend () -> Result<List<User>>) {

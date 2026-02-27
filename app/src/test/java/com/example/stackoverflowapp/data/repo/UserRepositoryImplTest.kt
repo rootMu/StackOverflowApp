@@ -30,14 +30,17 @@ class UserRepositoryImplTest {
         fakeApi = FakeStackOverflowUsersApi(apiResult)
         repository = UserRepositoryImpl(fakeApi, fakeDb)
     }
+
     private fun setApiSuccess(users: List<User>) {
-        setupRepository(ApiResult.Success(
-            users.toDto()
-        ))
+        setupRepository(
+            ApiResult.Success(
+                users.toDto()
+            )
+        )
         fakeApi.setResponse(ApiResult.Success(users.toDto()))
     }
 
-    private fun List<User>.toDto() =  UsersResponseDto(items = map { it.toDto() })
+    private fun List<User>.toDto() = UsersResponseDto(items = map { it.toDto() })
 
     private fun User.toDto() = UserDto(
         userId = id,
@@ -53,9 +56,11 @@ class UserRepositoryImplTest {
         val list = listOf(user)
         fakeDb.insertUsers(list)
 
-        setupRepository(ApiResult.Success(
-            list.toDto()
-        ))
+        setupRepository(
+            ApiResult.Success(
+                list.toDto()
+            )
+        )
 
         val result = repository.fetchTopUsers()
 
@@ -91,9 +96,11 @@ class UserRepositoryImplTest {
         val list = listOf(freshUser)
         setApiSuccess(list)
 
-        setupRepository(ApiResult.Success(
-            list.toDto()
-        ))
+        setupRepository(
+            ApiResult.Success(
+                list.toDto()
+            )
+        )
 
         repository.refreshUsers()
 

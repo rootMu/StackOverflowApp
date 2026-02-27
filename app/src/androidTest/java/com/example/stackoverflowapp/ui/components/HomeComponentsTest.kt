@@ -1,10 +1,11 @@
 package com.example.stackoverflowapp.ui.components
 
 import android.graphics.Bitmap
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -30,18 +31,22 @@ class HomeComponentsTest {
     fun loadingScreen_displaysCircularProgress() {
         composeRule.setContent { LoadingScreen() }
 
-        composeRule.onNode(hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("App Logo").assertIsDisplayed()
+        composeRule.onNodeWithText("Fetching Legends...").assertIsDisplayed()
     }
 
     @Test
     fun errorStateView_displaysMessageAndRetryButton() {
         var retryClicked = false
         composeRule.setContent {
-            ErrorStateView(message = "Timeout Error", onRetry = { retryClicked = true })
+            ErrorStateView(
+                title = "Oh Noes...",
+                message = "Timeout Error",
+                onRetry = { retryClicked = true })
         }
 
         composeRule.onNodeWithText("Timeout Error").assertIsDisplayed()
-        composeRule.onNodeWithText("Retry").performClick()
+        composeRule.onNodeWithText("Try Again").performClick()
         Assert.assertTrue(retryClicked)
     }
 
@@ -60,10 +65,12 @@ class HomeComponentsTest {
 
         composeRule.setContent {
             UsersPolaroidGridView(
+                gridState = rememberLazyGridState(),
                 users = users,
                 followedUserIds = emptySet(),
                 onFollowClick = {},
-                imageLoader = fakeImageLoader
+                imageLoader = fakeImageLoader,
+                contentPadding = PaddingValues.Absolute()
             )
         }
 
