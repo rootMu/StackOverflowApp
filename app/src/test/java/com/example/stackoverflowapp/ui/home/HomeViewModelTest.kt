@@ -101,6 +101,29 @@ class HomeViewModelTest {
         }
     }
 
+    @Test
+    fun `searchQuery filters users list correctly`() = runTest {
+        val user1 = createUser(1, "Jeff Atwood")
+        val user2 = createUser(2, "Joel Spolsky")
+        val repo = FakeUserRepository(Result.success(listOf(user1, user2)))
+        val viewModel = createViewModel(repo)
+
+        advanceUntilIdle()
+
+        assertEquals(2, viewModel.filteredUsers.size)
+
+        viewModel.onSearchQueryChange("Jeff")
+
+        assertEquals(1, viewModel.filteredUsers.size)
+        assertEquals("Jeff Atwood", viewModel.filteredUsers[0].displayName)
+
+        viewModel.onSearchQueryChange("Unknown")
+        assertTrue(viewModel.filteredUsers.isEmpty())
+
+        viewModel.onSearchQueryChange("")
+        assertEquals(2, viewModel.filteredUsers.size)
+    }
+
     private fun TestScope.initAndGetSuccess(
         users: List<User> = emptyList(),
         store: UserStore = FakeUserStore()

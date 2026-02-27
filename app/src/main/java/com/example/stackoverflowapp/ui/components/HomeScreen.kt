@@ -1,16 +1,22 @@
 package com.example.stackoverflowapp.ui.components
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.stackoverflowapp.data.image.ImageLoader
+import com.example.stackoverflowapp.domain.model.User
 import com.example.stackoverflowapp.ui.home.HomeUiState
 
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
+    users: List<User>,
+    gridState: LazyGridState,
     imageLoader: ImageLoader,
     onRetry: () -> Unit,
     onFollowClick: (Int) -> Unit,
+    contentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
 
@@ -28,11 +34,13 @@ fun HomeScreen(
         )
 
         is HomeUiState.Success -> UsersPolaroidGridView(
-            users = uiState.users,
+            gridState = gridState,
+            users = users,
             followedUserIds = uiState.followedUserIds,
             modifier = modifier,
             onFollowClick = onFollowClick,
-            imageLoader = imageLoader
+            imageLoader = imageLoader,
+            contentPadding = contentPadding
         )
     }
 }
