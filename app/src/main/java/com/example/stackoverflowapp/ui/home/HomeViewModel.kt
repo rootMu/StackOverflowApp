@@ -19,6 +19,15 @@ class HomeViewModel(
     private val userStore: UserStore
 ) : ViewModel() {
 
+    var sortOrder by mutableStateOf(SortOrder.REPUTATION_DESC)
+        private set
+
+    var showFavoritesOnly by mutableStateOf(false)
+        private set
+
+    fun onSortOrderChange(newOrder: SortOrder) { sortOrder = newOrder }
+    fun toggleFavoritesFilter() { showFavoritesOnly = !showFavoritesOnly }
+
     var searchQuery by mutableStateOf("")
         private set
     var followedUserIds by mutableStateOf(userStore.getFollowedUserIds())
@@ -29,13 +38,16 @@ class HomeViewModel(
     val filteredUsers by derivedStateOf {
         val state = uiState.value
         if (state is HomeUiState.Success) {
-            if (searchQuery.isBlank()) {
-                state.users
-            } else {
-                state.users.filter { user ->
-                    user.displayName.contains(searchQuery, ignoreCase = true)
-                }
-            }
+            state.users
+                .filter { it.displayName.contains(searchQuery, ignoreCase = true) }
+                // 2. Filter by Favorites
+                .filter { if (showFavoritesOnly) it.id in followedUserIds else true }
+                // 3. Apply Sorting
+                .sortedWith(when (sortOrder) {
+                    SortOrder.NAME_ASC -> compareBy { it.displayName.lowercase() }
+                    SortOrder.REPUTATION_DESC -> compareByDescending { it.reputation }
+                    SortOrder.REPUTATION_ASC -> compareBy { it.reputation }
+                })
         } else {
             emptyList()
         }
@@ -102,6 +114,10 @@ class HomeViewModel(
         if (_uiState.value !is HomeUiState.Success) return
         val current = _uiState.value as HomeUiState.Success
         _uiState.value = current.copy(followedUserIds = followedUserIds)
+    }
+
+    enum class SortOrder {
+        NAME_ASC, REPUTATION_DESC, REPUTATION_ASC
     }
 
 

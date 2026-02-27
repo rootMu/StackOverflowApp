@@ -2,6 +2,7 @@ package com.example.stackoverflowapp.ui.components
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.stackoverflowapp.data.image.ImageLoader
@@ -10,10 +11,10 @@ import com.example.stackoverflowapp.ui.home.HomeUiState
 
 @Composable
 fun HomeScreen(
+    gridState: LazyGridState,
     uiState: HomeUiState,
     users: List<User>,
     searchQuery: String,
-    gridState: LazyGridState,
     imageLoader: ImageLoader,
     onRetry: () -> Unit,
     onFollowClick: (Int) -> Unit,
@@ -44,7 +45,7 @@ fun HomeScreen(
         } else {
             UsersPolaroidGridView(
                 gridState = gridState,
-                users = users.takeIf{ it.isNotEmpty() }?:uiState.users,
+                users = users,
                 followedUserIds = uiState.followedUserIds,
                 modifier = modifier,
                 onFollowClick = onFollowClick,
