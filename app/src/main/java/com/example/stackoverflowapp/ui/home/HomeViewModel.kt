@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.data.storage.UserStore
-import kotlinx.coroutines.Dispatchers
+import com.example.stackoverflowapp.domain.model.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,25 +23,12 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    var isRefreshing by mutableStateOf(false)
-        private set
-
     init {
         loadUsers()
     }
 
     fun loadUsers() {
-        viewModelScope.launch {
-            _uiState.value = HomeUiState.Loading
-            val result = userRepository.fetchTopUsers()
-
-            _uiState.value = if (result.isSuccess) {
-                val users = result.getOrDefault(emptyList())
-                users.toHomeUiState(followedUserIds)
-            } else {
-                HomeUiState.Error(result.exceptionOrNull()?.message ?: "Something went wrong")
-            }
-        }
+        handleUserFetch { userRepository.fetchTopUsers() }
     }
 
     fun toggleFollow(userId: Int) {
@@ -53,22 +40,50 @@ class HomeViewModel(
 
         viewModelScope.launch {
             userStore.setFollowedUserIds(newIds)
-            updateUiState()
         }
+
+        updateUiState()
     }
 
     fun refresh() {
+        val currentState = _uiState.value as? HomeUiState.Success ?: return
+        _uiState.value = currentState.copy(isRefreshing = true)
+
         viewModelScope.launch {
-            isRefreshing = true
-            userRepository.refreshUsers()
-            isRefreshing = false
+            handleUserFetch { userRepository.refreshUsers() }
+        }
+    }
+
+    private fun handleUserFetch(block: suspend () -> Result<List<User>>) {
+        viewModelScope.launch {
+            _uiState.value = HomeUiState.Loading
+            val result = block()
+
+            _uiState.value = result.fold(
+                onSuccess = { users ->
+                    if (users.isEmpty()) {
+                        HomeUiState.Empty
+                    } else {
+                        users.toHomeUiState(followedUserIds)
+                    }
+                },
+                onFailure = {
+                    val current = _uiState.value
+                    if (current is HomeUiState.Success) {
+                        current.copy(isRefreshing = false)
+                    } else {
+                        HomeUiState.Error(it.message ?: "Something went wrong")
+                    }
+                }
+
+            )
         }
     }
 
     private fun updateUiState() {
         if (_uiState.value !is HomeUiState.Success) return
         val current = _uiState.value as HomeUiState.Success
-        viewModelScope.launch(Dispatchers.Main) {
+        viewModelScope.launch {
             _uiState.value = current.copy(followedUserIds = followedUserIds)
         }
     }

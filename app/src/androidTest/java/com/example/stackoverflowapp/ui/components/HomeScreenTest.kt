@@ -19,6 +19,7 @@ class HomeScreenTest {
 
     val fakeImageLoader = object : ImageLoader {
         override suspend fun loadBitmap(url: String): Bitmap? = null
+        override fun getCachedBitmap(url: String): Bitmap? = null
     }
 
     @Test
@@ -27,7 +28,7 @@ class HomeScreenTest {
             HomeScreen(
                 uiState = HomeUiState.Loading,
                 imageLoader = fakeImageLoader,
-                onRefresh = {},
+                onRetry = {},
                 onFollowClick = {}
             )
         }
@@ -41,7 +42,7 @@ class HomeScreenTest {
             HomeScreen(
                 uiState = HomeUiState.Empty,
                 imageLoader = fakeImageLoader,
-                onRefresh = {},
+                onRetry = {},
                 onFollowClick = {}
             )
         }
@@ -57,7 +58,7 @@ class HomeScreenTest {
             HomeScreen(
                 uiState = HomeUiState.Error("Network down"),
                 imageLoader = fakeImageLoader,
-                onRefresh = { retryCount++ },
+                onRetry = { retryCount++ },
                 onFollowClick = {}
             )
         }
@@ -80,7 +81,7 @@ class HomeScreenTest {
             HomeScreen(
                 uiState = HomeUiState.Success(users),
                 imageLoader = fakeImageLoader,
-                onRefresh = {},
+                onRetry = {},
                 onFollowClick = {}
             )
         }

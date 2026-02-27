@@ -7,6 +7,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.example.stackoverflowapp.data.image.ImageLoader
+import com.example.stackoverflowapp.ui.home.HomeUiState
 import com.example.stackoverflowapp.ui.home.HomeViewModel
 
 @Composable
@@ -18,7 +19,7 @@ fun HomeRoute(
     val uiState by viewModel.uiState.collectAsState()
 
     PullToRefreshBox(
-        isRefreshing = viewModel.isRefreshing,
+        isRefreshing = (uiState as? HomeUiState.Success)?.isRefreshing ?: false,
         onRefresh = { viewModel.refresh() },
         modifier = modifier.fillMaxSize()
     ) {

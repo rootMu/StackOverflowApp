@@ -8,7 +8,8 @@ sealed interface HomeUiState {
 
     data class Success(
         val users: List<User>,
-        val followedUserIds: Set<Int> = emptySet()
+        val followedUserIds: Set<Int> = emptySet(),
+        val isRefreshing: Boolean = false
     ) : HomeUiState
 
     /**
@@ -24,5 +25,6 @@ sealed interface HomeUiState {
 internal fun List<User>.toHomeUiState(followedUserIds: Set<Int>): HomeUiState =
     if (isEmpty()) HomeUiState.Empty else HomeUiState.Success(
         users = this,
-        followedUserIds = followedUserIds
+        followedUserIds = followedUserIds,
+        isRefreshing = false
     )

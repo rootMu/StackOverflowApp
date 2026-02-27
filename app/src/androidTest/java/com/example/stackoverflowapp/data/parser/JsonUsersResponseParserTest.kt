@@ -59,6 +59,15 @@ class JsonUsersResponseParserTest {
         Assert.assertNull(result.items.first().profileImageUrl)
     }
 
+    @Test
+    fun parserUsersResponse_handlesJSONMissingItemsArray() {
+        val malformedJson = "{ \"quota_max\": 300 }"
+        val parser = JsonUsersResponseParser()
+
+        val result = parser.parseUsersResponse(malformedJson)
+        Assert.assertTrue(result.items.isEmpty())
+    }
+
     @Test(expected = JsonParsingException::class)
     fun parseUsersResponse_throwsControlledException_forInvalidJson() {
         parser.parseUsersResponse("{ invalid json")

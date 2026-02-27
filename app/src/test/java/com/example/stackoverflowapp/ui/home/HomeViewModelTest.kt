@@ -104,7 +104,8 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `onFollowToggle adds user id when not already followed`() = runTest {        val users = listOf(User(1, "Jeff", 100, null))
+    fun `onFollowToggle adds user id when not already followed`() = runTest {
+        val users = listOf(User(1, "Jeff", 100, null))
         val repo = FakeUserRepository(Result.success(users))
         val store = FakeUserStore()
         val viewModel = createViewModel(repo, store)
@@ -169,8 +170,10 @@ class HomeViewModelTest {
         viewModel.toggleFollow(userId)
         advanceUntilIdle()
 
-        assertTrue("Final state should be followed after odd number of toggles",
-            userId in viewModel.followedUserIds)
+        assertTrue(
+            "Final state should be followed after odd number of toggles",
+            userId in viewModel.followedUserIds
+        )
     }
 
     @Test
@@ -188,10 +191,13 @@ class HomeViewModelTest {
         viewModel.toggleFollow(6)
         advanceUntilIdle()
 
-        // Assert
         val expected = setOf(1, 2, 3, 4, 5)
         assertEquals("All IDs should be in memory", expected, viewModel.followedUserIds)
-        assertEquals("All IDs should be in the persistent store", expected, store.getFollowedUserIds())
+        assertEquals(
+            "All IDs should be in the persistent store",
+            expected,
+            store.getFollowedUserIds()
+        )
     }
 
     @Test
