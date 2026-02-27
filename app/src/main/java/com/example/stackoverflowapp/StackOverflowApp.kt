@@ -2,10 +2,14 @@ package com.example.stackoverflowapp
 
 import android.app.Application
 import com.example.stackoverflowapp.di.AppContainer
+import com.example.stackoverflowapp.di.DefaultAppContainer
 
 class StackOverflowApp: Application() {
 
-    val container: AppContainer by lazy {
-        AppContainer(this)
+    lateinit var container: AppContainer
+
+    override fun onCreate() {
+        super.onCreate()
+        container = DefaultAppContainer(this)
     }
 }
