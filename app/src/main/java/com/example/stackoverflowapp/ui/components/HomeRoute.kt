@@ -106,6 +106,7 @@ fun HomeRoute(
                 gridState = gridState,
                 uiState = uiState,
                 users = viewModel.filteredUsers,
+                searchQuery = viewModel.searchQuery,
                 imageLoader = imageLoader,
                 onRetry = viewModel::loadUsers,
                 onFollowClick = viewModel::toggleFollow,

@@ -27,11 +27,15 @@ class HomeViewModel(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     val filteredUsers by derivedStateOf {
-        val state = _uiState.value
-        if(state is HomeUiState.Success) {
-            state.users.takeIf {searchQuery.isNotBlank()}?.filter { user ->
-                user.displayName.contains(searchQuery, ignoreCase = true)
-            }?: state.users
+        val state = uiState.value
+        if (state is HomeUiState.Success) {
+            if (searchQuery.isBlank()) {
+                state.users
+            } else {
+                state.users.filter { user ->
+                    user.displayName.contains(searchQuery, ignoreCase = true)
+                }
+            }
         } else {
             emptyList()
         }

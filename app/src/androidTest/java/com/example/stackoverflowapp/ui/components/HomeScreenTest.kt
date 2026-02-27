@@ -31,6 +31,7 @@ class HomeScreenTest {
                 gridState = rememberLazyGridState(),
                 uiState = HomeUiState.Loading,
                 users = emptyList(),
+                searchQuery = "",
                 imageLoader = fakeImageLoader,
                 onRetry = {},
                 onFollowClick = {},
@@ -38,7 +39,7 @@ class HomeScreenTest {
             )
         }
 
-        composeRule.onNodeWithText("Loading users...").assertIsDisplayed()
+        composeRule.onNodeWithText("Fetching Legends...").assertIsDisplayed()
     }
 
     @Test
@@ -48,6 +49,7 @@ class HomeScreenTest {
                 gridState = rememberLazyGridState(),
                 uiState = HomeUiState.Empty,
                 users = emptyList(),
+                searchQuery = "",
                 imageLoader = fakeImageLoader,
                 onRetry = {},
                 onFollowClick = {},
@@ -55,7 +57,7 @@ class HomeScreenTest {
             )
         }
 
-        composeRule.onNodeWithText("No users found").assertIsDisplayed()
+        composeRule.onNodeWithText("No users found \uD83D\uDD0D").assertIsDisplayed()
     }
 
     @Test
@@ -67,6 +69,7 @@ class HomeScreenTest {
                 gridState = rememberLazyGridState(),
                 uiState = HomeUiState.Error("Network down"),
                 users = emptyList(),
+                searchQuery = "",
                 imageLoader = fakeImageLoader,
                 onRetry = { retryCount++ },
                 onFollowClick = {},
@@ -74,9 +77,9 @@ class HomeScreenTest {
             )
         }
 
-        composeRule.onNodeWithText("Unable to load users").assertIsDisplayed()
-        composeRule.onNodeWithText("Network down").assertIsDisplayed()
-        composeRule.onNodeWithText("Retry").performClick()
+        composeRule.onNodeWithText("404 - Users Not Found \uD83D\uDD75\uFE0F\u200D♂\uFE0F").assertIsDisplayed()
+        composeRule.onNodeWithText("Error code: Network down").assertIsDisplayed()
+        composeRule.onNodeWithText("Try Again").performClick()
 
         Assert.assertEquals(1, retryCount)
     }
@@ -93,6 +96,7 @@ class HomeScreenTest {
                 gridState = rememberLazyGridState(),
                 uiState = HomeUiState.Success(users),
                 users = users,
+                searchQuery = "",
                 imageLoader = fakeImageLoader,
                 onRetry = {},
                 onFollowClick = {},
