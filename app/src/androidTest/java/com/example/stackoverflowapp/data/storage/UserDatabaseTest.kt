@@ -21,7 +21,7 @@ class UserDatabaseTest {
         db = UserDatabase(context)
     }
 
-    private fun createUser(id: Int, rep: Int) = User(id, "User $id", rep, null)
+    private fun createUser(id: Int, rep: Int) = User(id, "User $id", rep, null, location = "somewhere", websiteUrl = "http://example.com")
 
     @Test
     fun databaseMaintainsStrictReputationSorting() {

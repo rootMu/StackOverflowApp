@@ -1,8 +1,9 @@
+package com.example.stackoverflowapp.data.repo
+
 import com.example.stackoverflowapp.data.api.ApiResult
 import com.example.stackoverflowapp.data.api.FakeStackOverflowUsersApi
 import com.example.stackoverflowapp.data.api.UserDto
 import com.example.stackoverflowapp.data.api.UsersResponseDto
-import com.example.stackoverflowapp.data.repo.UserRepositoryImpl
 import com.example.stackoverflowapp.data.storage.FakeUserDatabase
 import com.example.stackoverflowapp.domain.model.User
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -10,6 +11,25 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+
+/**
+ * Helper function to create a [User] for testing purposes.
+ */
+fun createTestUser(
+    id: Int = 1,
+    name: String = "Test User",
+    reputation: Int = 100,
+    imageUrl: String? = null,
+    location: String? = "London",
+    website: String? = "https://example.com"
+) = User(
+    id = id,
+    displayName = name,
+    reputation = reputation,
+    profileImageUrl = imageUrl,
+    location = location,
+    websiteUrl = website
+)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserRepositoryImplTest {
@@ -22,9 +42,6 @@ class UserRepositoryImplTest {
     fun setup() {
         fakeDb = FakeUserDatabase()
     }
-
-    private fun createUser(id: Int) =
-        User(id, "User $id", 100, null)
 
     private fun setupRepository(apiResult: ApiResult<UsersResponseDto>) {
         fakeApi = FakeStackOverflowUsersApi(apiResult)
@@ -46,13 +63,15 @@ class UserRepositoryImplTest {
         userId = id,
         displayName = displayName,
         reputation = reputation,
-        profileImageUrl = profileImageUrl
+        profileImageUrl = profileImageUrl,
+        location = location,
+        websiteUrl = websiteUrl
     )
     // --- Tests ---
 
     @Test
     fun `fetchTopUsers returns local data when available`() = runTest {
-        val user = createUser(1)
+        val user = createTestUser(1)
         val list = listOf(user)
         fakeDb.insertUsers(list)
 
@@ -91,8 +110,8 @@ class UserRepositoryImplTest {
 
     @Test
     fun `refreshUsers replaces local cache with fresh data`() = runTest {
-        fakeDb.insertUsers(listOf(createUser(1)))
-        val freshUser = createUser(2)
+        fakeDb.insertUsers(listOf(createTestUser(1)))
+        val freshUser = createTestUser(2)
         val list = listOf(freshUser)
         setApiSuccess(list)
 

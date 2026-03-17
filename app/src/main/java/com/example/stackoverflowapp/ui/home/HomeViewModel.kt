@@ -4,24 +4,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.repo.UserRepository
-import com.example.stackoverflowapp.data.storage.UserStore
 import com.example.stackoverflowapp.domain.model.User
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.example.stackoverflowapp.ui.main.FollowViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlin.text.contains
 
 class HomeViewModel(
     private val userRepository: UserRepository,
-    private val userStore: UserStore
-) : ViewModel() {
+    followedUsersRepository: FollowedUsersRepository
+) : FollowViewModel<HomeUiState>(HomeUiState.Loading, followedUsersRepository) {
 
     var sortOrder by mutableStateOf(SortOrder.REPUTATION_DESC)
         private set
@@ -39,21 +36,18 @@ class HomeViewModel(
 
     var searchQuery by mutableStateOf("")
         private set
-    var followedUserIds by mutableStateOf(userStore.getFollowedUserIds())
-        private set
-    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
-    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     val filteredUsers: StateFlow<List<User>> = combine(
         _uiState,
         snapshotFlow { searchQuery },
         snapshotFlow { sortOrder },
-        snapshotFlow { showFavouritesOnly }
-    ) { state, query, sort, favorites ->
+        snapshotFlow { showFavouritesOnly },
+        followedUserIds
+    ) { state, query, sort, favouritesOnly, followedIds ->
         if (state is HomeUiState.Success) {
             state.users
                 .filter { it.displayName.contains(query, ignoreCase = true) }
-                .filter { if (favorites) it.id in followedUserIds else true }
+                .filter { !favouritesOnly || it.id in followedIds }
                 .sortedWith(getComparator(sort))
         } else {
             emptyList()
@@ -74,24 +68,14 @@ class HomeViewModel(
         loadUsers()
     }
 
+    fun onFollowClick(userId: Int) {
+        toggleFollowAsync(userId)
+    }
+
     fun loadUsers() {
         viewModelScope.launch {
             handleUserFetch { userRepository.fetchTopUsers() }
         }
-    }
-
-    fun toggleFollow(userId: Int) {
-        val newIds = followedUserIds.toMutableSet().apply {
-            if (!add(userId)) remove(userId)
-        }.toSet()
-
-        followedUserIds = newIds
-
-        viewModelScope.launch {
-            userStore.setFollowedUserIds(newIds)
-        }
-
-        updateUiState()
     }
 
     fun refresh() {
@@ -109,13 +93,13 @@ class HomeViewModel(
 
     private suspend fun handleUserFetch(fetcher: suspend () -> Result<List<User>>) {
         val result = fetcher()
-
+        val currentFollowedIds = followedUserIds.value
         val currentState = _uiState.value
 
         _uiState.value = result.fold(
             onSuccess = { users ->
                 if (users.isEmpty()) HomeUiState.Empty
-                else HomeUiState.Success(users, followedUserIds, isRefreshing = false)
+                else HomeUiState.Success(users, currentFollowedIds, isRefreshing = false)
             },
             onFailure = { error ->
                 if (currentState is HomeUiState.Success) {
@@ -125,12 +109,6 @@ class HomeViewModel(
                 }
             }
         )
-    }
-
-    private fun updateUiState() {
-        if (_uiState.value !is HomeUiState.Success) return
-        val current = _uiState.value as HomeUiState.Success
-        _uiState.value = current.copy(followedUserIds = followedUserIds)
     }
 
     enum class SortOrder {

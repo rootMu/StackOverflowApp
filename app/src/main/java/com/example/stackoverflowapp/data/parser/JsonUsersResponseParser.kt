@@ -43,12 +43,17 @@ class JsonUsersResponseParser : UsersResponseParser {
             )
         }
 
+        val location = json.optStringOrNull("location")
+        val websiteUrl = json.optStringOrNull("website_url")
+
         return UserDto(
             userId = userId,
             displayName = displayName,
             reputation = reputation,
             profileImageUrl = profileImageUrl,
-            badgeCounts = badgeCounts
+            badgeCounts = badgeCounts,
+            location = location,
+            websiteUrl = websiteUrl
         )
     }
 }

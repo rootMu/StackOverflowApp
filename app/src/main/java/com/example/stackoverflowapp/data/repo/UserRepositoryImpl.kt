@@ -1,8 +1,8 @@
 package com.example.stackoverflowapp.data.repo
 
-import com.example.stackoverflowapp.data.api.ApiResult
 import com.example.stackoverflowapp.data.api.StackOverflowUsersApi
 import com.example.stackoverflowapp.data.api.UserDto
+import com.example.stackoverflowapp.data.api.toResult
 import com.example.stackoverflowapp.data.storage.UserDatabase
 import com.example.stackoverflowapp.domain.model.User
 
@@ -12,48 +12,34 @@ class UserRepositoryImpl(
 ) : UserRepository {
 
     override suspend fun fetchTopUsers(): Result<List<User>> {
-
         val localUsers = userDatabase.getAllUsers()
-
         if (localUsers.isNotEmpty()) {
             return Result.success(localUsers)
         }
-
         return fetchUsersFromApi()
+    }
+
+    override suspend fun fetchUsersById(userId: Int): Result<User> {
+        val localUser = userDatabase.getUserById(userId)
+        if (localUser != null) {
+            return Result.success(localUser)
+        }
+        // In a real app, we might call fetchUserById(userId) here if not found in DB
+        return Result.failure(Exception("User with id: $userId not found"))
     }
 
     override suspend fun refreshUsers(): Result<List<User>> {
-        userDatabase.clearAllUsers()
-        return fetchUsersFromApi()
+        return fetchUsersFromApi(clearCache = true)
     }
 
-    private suspend fun fetchUsersFromApi() =
-        when (val result = usersApi.fetchTopUsers(page = 1, pageSize = 20)) {
-            is ApiResult.Success -> {
-                val domainUsers = result.data.items.map { it.toDomain() }
-
-                userDatabase.insertUsers(domainUsers)
-
-                Result.success(domainUsers)
-            }
-
-            is ApiResult.Error.Http -> {
-                Result.failure(Exception("HTTP ${result.code}: ${result.message ?: "Request failed"}"))
-            }
-
-            is ApiResult.Error.EmptyBody -> {
-                Result.failure(Exception("Empty response body"))
-            }
-
-            is ApiResult.Error.Network -> {
-                Result.failure(Exception(result.message))
-            }
-
-            is ApiResult.Error.Parse -> {
-                Result.failure(Exception(result.message))
-            }
+    private suspend fun fetchUsersFromApi(clearCache: Boolean = false): Result<List<User>> {
+        return usersApi.fetchTopUsers(page = 1, pageSize = 20).toResult { response ->
+            val domainUsers = response.items.map { it.toDomain() }
+            if (clearCache) userDatabase.clearAllUsers()
+            userDatabase.insertUsers(domainUsers)
+            domainUsers
         }
-
+    }
 }
 
 private fun UserDto.toDomain(): User {
@@ -61,6 +47,8 @@ private fun UserDto.toDomain(): User {
         id = userId,
         displayName = displayName,
         reputation = reputation,
-        profileImageUrl = profileImageUrl
+        profileImageUrl = profileImageUrl,
+        location = location,
+        websiteUrl = websiteUrl
     )
 }

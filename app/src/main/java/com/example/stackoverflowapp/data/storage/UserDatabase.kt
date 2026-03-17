@@ -20,13 +20,17 @@ open class UserDatabase(context: Context?) :
         private const val COLUMN_NAME = "name"
         private const val COLUMN_REPUTATION = "reputation"
         private const val COLUMN_PROFILE_IMAGE = "profile_image"
+        private const val COLUMN_LOCATION = "location"
+        private const val COLUMN_WEBSITE_URL = "website_url"
 
         private const val CREATE_USERS_TABLE = """
             CREATE TABLE $TABLE_USERS (
                 $COLUMN_ID INTEGER PRIMARY KEY,
                 $COLUMN_NAME TEXT,
                 $COLUMN_REPUTATION INTEGER,
-                $COLUMN_PROFILE_IMAGE TEXT
+                $COLUMN_PROFILE_IMAGE TEXT,
+                $COLUMN_LOCATION TEXT,
+                $COLUMN_WEBSITE_URL TEXT
             )
         """
     }
@@ -43,17 +47,16 @@ open class UserDatabase(context: Context?) :
     open fun insertUsers(users: List<User>) {
         val db = writableDatabase
         db.transaction {
-            try {
-                users.forEach { user ->
-                    val values = ContentValues().apply {
-                        put(COLUMN_ID, user.id)
-                        put(COLUMN_NAME, user.displayName)
-                        put(COLUMN_REPUTATION, user.reputation)
-                        put(COLUMN_PROFILE_IMAGE, user.profileImageUrl)
-                    }
-                    insertWithOnConflict(TABLE_USERS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+            users.forEach { user ->
+                val values = ContentValues().apply {
+                    put(COLUMN_ID, user.id)
+                    put(COLUMN_NAME, user.displayName)
+                    put(COLUMN_REPUTATION, user.reputation)
+                    put(COLUMN_PROFILE_IMAGE, user.profileImageUrl)
+                    put(COLUMN_LOCATION, user.location)
+                    put(COLUMN_WEBSITE_URL, user.websiteUrl)
                 }
-            } finally {
+                insertWithOnConflict(TABLE_USERS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
             }
         }
     }
@@ -71,24 +74,54 @@ open class UserDatabase(context: Context?) :
             "$COLUMN_REPUTATION DESC"
         )
 
-        with(cursor) {
-           while(moveToNext()) {
-               val id = getInt(getColumnIndexOrThrow(COLUMN_ID))
-               val name = getString(getColumnIndexOrThrow(COLUMN_NAME))
-               val reputation = getInt(getColumnIndexOrThrow(COLUMN_REPUTATION))
-               val profileImage = getString(getColumnIndexOrThrow(COLUMN_PROFILE_IMAGE))
-
-               users.add(User(id, name, reputation, profileImage))
-           }
+        cursor.use {
+            if (it.moveToFirst()) {
+                do {
+                    users.add(it.toUser())
+                } while (it.moveToNext())
+            }
         }
 
-        cursor.close()
         return users
+    }
+
+    open fun getUserById(userId: Int): User? {
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_USERS,
+            null,
+            "$COLUMN_ID = ?",
+            arrayOf(userId.toString()),
+            null,
+            null,
+            null
+        )
+
+        return cursor.use {
+            if (it.moveToFirst()) {
+                it.toUser()
+            } else {
+                null
+            }
+        }
     }
 
     open fun clearAllUsers() {
         writableDatabase.delete(TABLE_USERS, null, null)
     }
 
-
+    /**
+     * Maps the current row of the [Cursor] to a [User] domain model.
+     * Assumes the cursor is already positioned at a valid row.
+     */
+    private fun Cursor.toUser(): User {
+        return User(
+            id = getInt(getColumnIndexOrThrow(COLUMN_ID)),
+            displayName = getString(getColumnIndexOrThrow(COLUMN_NAME)) ?: "",
+            reputation = getInt(getColumnIndexOrThrow(COLUMN_REPUTATION)),
+            profileImageUrl = getString(getColumnIndexOrThrow(COLUMN_PROFILE_IMAGE)),
+            location = getString(getColumnIndexOrThrow(COLUMN_LOCATION)),
+            websiteUrl = getString(getColumnIndexOrThrow(COLUMN_WEBSITE_URL))
+        )
+    }
 }

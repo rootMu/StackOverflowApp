@@ -10,6 +10,8 @@ class FakeUserDatabase : UserDatabase(
 
     override fun getAllUsers(): List<User> = users
 
+    override fun getUserById(userId: Int): User? = users.find { it.id == userId }
+
     override fun insertUsers(users: List<User>) {
         val newIds = users.map { it.id }.toSet()
         this.users.removeAll { it.id in newIds }

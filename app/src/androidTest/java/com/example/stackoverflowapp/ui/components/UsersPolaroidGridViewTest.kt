@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.example.stackoverflowapp.data.image.ImageLoader
 import com.example.stackoverflowapp.domain.model.User
+import com.example.stackoverflowapp.ui.components.SharedTransitionTestContext
 import com.example.stackoverflowapp.ui.components.UsersPolaroidGridView
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -30,18 +31,30 @@ class UsersPolaroidGridViewTest {
     @Test
     fun user_notFollowed_showsFollowContentDescription() {
         val users = listOf(
-            User(id = 1, displayName = "Jeff Atwood", reputation = 9001, profileImageUrl = null)
+            User(
+                id = 1,
+                displayName = "Jeff Atwood",
+                reputation = 9001,
+                profileImageUrl = null,
+                null,
+                null
+            )
         )
 
         composeRule.setContent {
-            UsersPolaroidGridView(
-                gridState = rememberLazyGridState(),
-                users = users,
-                followedUserIds = emptySet(),
-                onFollowClick = {},
-                imageLoader = fakeImageLoader,
-                contentPadding = PaddingValues.Absolute()
-            )
+            SharedTransitionTestContext { animatedScope ->
+                UsersPolaroidGridView(
+                    gridState = rememberLazyGridState(),
+                    users = users,
+                    followedUsers = emptySet(),
+                    onFollowClick = {},
+                    imageLoader = fakeImageLoader,
+                    contentPadding = PaddingValues.Absolute(),
+                    onUserClick = {},
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
         }
 
         composeRule
@@ -52,18 +65,30 @@ class UsersPolaroidGridViewTest {
     @Test
     fun user_followed_showsUnfollowContentDescription() {
         val users = listOf(
-            User(id = 1, displayName = "Jeff Atwood", reputation = 9001, profileImageUrl = null)
+            User(
+                id = 1,
+                displayName = "Jeff Atwood",
+                reputation = 9001,
+                profileImageUrl = null,
+                null,
+                null
+            )
         )
 
         composeRule.setContent {
-            UsersPolaroidGridView(
-                gridState = rememberLazyGridState(),
-                users = users,
-                followedUserIds = setOf(1),
-                onFollowClick = {},
-                imageLoader = fakeImageLoader,
-                contentPadding = PaddingValues.Absolute()
-            )
+            SharedTransitionTestContext { animatedScope ->
+                UsersPolaroidGridView(
+                    gridState = rememberLazyGridState(),
+                    users = users,
+                    followedUsers = setOf(1),
+                    onFollowClick = {},
+                    imageLoader = fakeImageLoader,
+                    contentPadding = PaddingValues.Absolute(),
+                    onUserClick = {},
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
         }
 
         composeRule
@@ -74,20 +99,32 @@ class UsersPolaroidGridViewTest {
     @Test
     fun clicking_follow_icon_callsCallbackWithUserId() {
         val users = listOf(
-            User(id = 42, displayName = "Test User", reputation = 99, profileImageUrl = null)
+            User(
+                id = 42,
+                displayName = "Test User",
+                reputation = 99,
+                profileImageUrl = null,
+                null,
+                null
+            )
         )
 
         var clickedId: Int? = null
 
         composeRule.setContent {
-            UsersPolaroidGridView(
-                gridState = rememberLazyGridState(),
-                users = users,
-                followedUserIds = emptySet(),
-                onFollowClick = { id -> clickedId = id },
-                imageLoader = fakeImageLoader,
-                contentPadding = PaddingValues.Absolute()
-            )
+            SharedTransitionTestContext { animatedScope ->
+                UsersPolaroidGridView(
+                    gridState = rememberLazyGridState(),
+                    users = users,
+                    followedUsers = emptySet(),
+                    onFollowClick = { id -> clickedId = id },
+                    imageLoader = fakeImageLoader,
+                    contentPadding = PaddingValues.Absolute(),
+                    onUserClick = {},
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
         }
 
         composeRule
@@ -100,24 +137,35 @@ class UsersPolaroidGridViewTest {
     @Test
     fun clicking_follow_updatesUiWhenStateChanges() {
         val users = listOf(
-            User(id = 1, displayName = "Jeff Atwood", reputation = 9001, profileImageUrl = null)
+            User(
+                id = 1,
+                displayName = "Jeff Atwood",
+                reputation = 9001,
+                profileImageUrl = null,
+                null,
+                null
+            )
         )
 
         composeRule.setContent {
             var followedIds by remember { mutableStateOf(setOf<Int>()) }
-
-            UsersPolaroidGridView(
-                gridState = rememberLazyGridState(),
-                users = users,
-                followedUserIds = followedIds,
-                onFollowClick = { userId ->
-                    @Suppress("AssignedValueIsNeverRead")
-                    followedIds =
-                        if (userId in followedIds) followedIds - userId else followedIds + userId
-                },
-                imageLoader = fakeImageLoader,
-                contentPadding = PaddingValues.Absolute()
-            )
+            SharedTransitionTestContext { animatedScope ->
+                UsersPolaroidGridView(
+                    gridState = rememberLazyGridState(),
+                    users = users,
+                    followedUsers = followedIds,
+                    onFollowClick = { userId ->
+                        @Suppress("AssignedValueIsNeverRead")
+                        followedIds =
+                            if (userId in followedIds) followedIds - userId else followedIds + userId
+                    },
+                    imageLoader = fakeImageLoader,
+                    contentPadding = PaddingValues.Absolute(),
+                    onUserClick = {},
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
         }
 
         composeRule.onNodeWithTag("follow_button_1", useUnmergedTree = true)

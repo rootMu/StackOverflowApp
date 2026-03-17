@@ -5,5 +5,7 @@ data class UserDto(
     val displayName: String,
     val reputation: Int,
     val profileImageUrl: String?,
-    val badgeCounts: BadgeCountsDto? = null
+    val badgeCounts: BadgeCountsDto? = null,
+    val location: String? = null,
+    val websiteUrl: String? = null
 )
