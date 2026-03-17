@@ -11,8 +11,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.example.stackoverflowapp.data.image.ImageLoader
+import com.example.stackoverflowapp.domain.model.SharedTransitionTestContext
 import com.example.stackoverflowapp.domain.model.User
-import com.example.stackoverflowapp.ui.components.SharedTransitionTestContext
 import com.example.stackoverflowapp.ui.components.UsersPolaroidGridView
 import org.junit.Assert.assertEquals
 import org.junit.Rule

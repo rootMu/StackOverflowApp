@@ -11,6 +11,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.example.stackoverflowapp.data.image.ImageLoader
+import com.example.stackoverflowapp.domain.model.SharedTransitionTestContext
+import com.example.stackoverflowapp.domain.model.createTestUser
 import com.example.stackoverflowapp.ui.home.HomeScreen
 import com.example.stackoverflowapp.ui.home.HomeUiState
 import org.junit.Assert
@@ -102,7 +104,8 @@ class HomeScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("404 - Users Not Found \uD83D\uDD75\uFE0F\u200D♂\uFE0F").assertIsDisplayed()
+        composeRule.onNodeWithText("404 - Users Not Found \uD83D\uDD75\uFE0F\u200D♂\uFE0F")
+            .assertIsDisplayed()
         composeRule.onNodeWithText("Error code: Network down").assertIsDisplayed()
         composeRule.onNodeWithText("Try Again").performClick()
 

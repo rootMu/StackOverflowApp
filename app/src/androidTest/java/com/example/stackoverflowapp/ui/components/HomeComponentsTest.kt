@@ -1,14 +1,9 @@
 package com.example.stackoverflowapp.ui.components
 
 import android.graphics.Bitmap
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -16,45 +11,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.stackoverflowapp.data.image.ImageLoader
-import com.example.stackoverflowapp.domain.model.User
+import com.example.stackoverflowapp.domain.model.SharedTransitionTestContext
+import com.example.stackoverflowapp.domain.model.createTestUser
 import org.junit.Assert
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-
-/**
- * Helper function to create a [User] for testing purposes.
- */
-fun createTestUser(
-    id: Int = 1,
-    name: String = "Test User",
-    reputation: Int = 100,
-    imageUrl: String? = null,
-    location: String? = "London",
-    website: String? = "https://example.com"
-) = User(
-    id = id,
-    displayName = name,
-    reputation = reputation,
-    profileImageUrl = imageUrl,
-    location = location,
-    websiteUrl = website
-)
-
-/**
- * Reusable test wrapper to provide Shared Transition scopes.
- */
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun SharedTransitionTestContext(
-    content: @Composable SharedTransitionScope.(AnimatedContentScope) -> Unit
-) {
-    SharedTransitionLayout {
-        AnimatedContent(targetState = true, label = "test") { _ ->
-            content(this@SharedTransitionLayout, this@AnimatedContent)
-        }
-    }
-}
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @RunWith(AndroidJUnit4::class)
@@ -93,7 +55,12 @@ class HomeComponentsTest {
 
     @Test
     fun emptyStateView_displaysNoUsersFound() {
-        composeRule.setContent { EmptyStateView(title = "No users found", message = "No Users Found") }
+        composeRule.setContent {
+            EmptyStateView(
+                title = "No users found",
+                message = "No Users Found"
+            )
+        }
         composeRule.onNodeWithText("No users found").assertIsDisplayed()
     }
 

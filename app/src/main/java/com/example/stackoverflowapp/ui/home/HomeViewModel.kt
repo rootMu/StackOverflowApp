@@ -66,6 +66,14 @@ class HomeViewModel(
 
     init {
         loadUsers()
+        viewModelScope.launch {
+            followedUserIds.collect { ids ->
+                val currentState = _uiState.value
+                if (currentState is HomeUiState.Success) {
+                    _uiState.value = currentState.copy(followedUserIds = ids)
+                }
+            }
+        }
     }
 
     fun onFollowClick(userId: Int) {

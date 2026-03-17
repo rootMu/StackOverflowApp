@@ -14,7 +14,7 @@ class HomeUiStateTest {
 
     @Test
     fun `non empty list maps to Success state`() {
-        val state = listOf(User(1, "Jeff", 1, null))
+        val state = listOf(User(1, "Jeff", 1, null, null, null))
             .toHomeUiState(emptySet())
         assertTrue(state is HomeUiState.Success)
     }

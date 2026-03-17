@@ -6,30 +6,12 @@ import com.example.stackoverflowapp.data.api.UserDto
 import com.example.stackoverflowapp.data.api.UsersResponseDto
 import com.example.stackoverflowapp.data.storage.FakeUserDatabase
 import com.example.stackoverflowapp.domain.model.User
+import com.example.stackoverflowapp.domain.model.createTestUser
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-
-/**
- * Helper function to create a [User] for testing purposes.
- */
-fun createTestUser(
-    id: Int = 1,
-    name: String = "Test User",
-    reputation: Int = 100,
-    imageUrl: String? = null,
-    location: String? = "London",
-    website: String? = "https://example.com"
-) = User(
-    id = id,
-    displayName = name,
-    reputation = reputation,
-    profileImageUrl = imageUrl,
-    location = location,
-    websiteUrl = website
-)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserRepositoryImplTest {
@@ -95,7 +77,7 @@ class UserRepositoryImplTest {
             ApiResult.Error.Http(500, null) to "HTTP 500: Request failed",
             ApiResult.Error.EmptyBody to "Empty response body",
             ApiResult.Error.Network("No Internet") to "No Internet",
-            ApiResult.Error.Parse("Malformed JSON") to "Malformed JSON"
+            ApiResult.Error.Parse("Malformed JSON") to "Parse error: Malformed JSON"
         )
 
         errorCases.forEach { (apiError, expectedMessage) ->
