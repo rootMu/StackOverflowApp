@@ -5,6 +5,7 @@ import kotlinx.coroutines.delay
 
 class FakeUserRepository(private var result: Result<List<User>>) : UserRepository {
     var fetchCallCount = 0
+    var refreshCallCount = 0
     fun setResult(newResult: Result<List<User>>) {
         result = newResult
     }
@@ -23,6 +24,7 @@ class FakeUserRepository(private var result: Result<List<User>>) : UserRepositor
 
     override suspend fun refreshUsers(): Result<List<User>> {
         fetchCallCount++
+        refreshCallCount++
         delay(10)
         return result
     }

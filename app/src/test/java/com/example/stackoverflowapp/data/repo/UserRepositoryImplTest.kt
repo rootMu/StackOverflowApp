@@ -153,4 +153,61 @@ class UserRepositoryImplTest {
         Assert.assertTrue(result.isFailure)
         Assert.assertEquals("No Internet", result.exceptionOrNull()?.message)
     }
+
+    @Test
+    fun `fetchUserDetails returns failure when API succeeds but items list is empty`() = runTest {
+        setupRepository(ApiResult.Success(UsersResponseDto(emptyList())))
+
+        val result = repository.fetchUserDetails(123)
+
+        Assert.assertTrue(result.isFailure)
+        Assert.assertEquals("User not found", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `fetchUserDetails overwrites stale local user with richer API user`() = runTest {
+        val localUser = createTestUser(id = 123, aboutMe = null, location = "Old Location")
+        val apiUser = createTestUser(id = 123, aboutMe = "Rich Bio", location = "New Location")
+
+        fakeDb.insertUsers(listOf(localUser))
+        setupRepository(ApiResult.Success(UsersResponseDto(listOf(apiUser.toDto()))))
+
+        val result = repository.fetchUserDetails(123)
+
+        Assert.assertEquals(apiUser, result.getOrThrow())
+        val storedUser = fakeDb.getUserById(123)
+        Assert.assertEquals("Rich Bio", storedUser?.aboutMe)
+        Assert.assertEquals("New Location", storedUser?.location)
+    }
+
+    @Test
+    fun `fetchUserDetails prefers local complete user even if API would return different data`() = runTest {
+        val localUser = createTestUser(id = 123, aboutMe = "Existing Bio", location = "Location A")
+        val apiUser = createTestUser(id = 123, aboutMe = "Different Bio", location = "Location B")
+
+        fakeDb.insertUsers(listOf(localUser))
+        // API response won't even be called if local user has complete details
+        setupRepository(ApiResult.Success(UsersResponseDto(listOf(apiUser.toDto()))))
+
+        val result = repository.fetchUserDetails(123)
+
+        Assert.assertEquals(localUser, result.getOrThrow())
+        Assert.assertEquals(0, fakeApi.callCount)
+    }
+
+    @Test
+    fun `fetchTopUsers returns API users in original order after caching`() = runTest {
+        val users = listOf(
+            createTestUser(id = 1, reputation = 100),
+            createTestUser(id = 2, reputation = 200),
+            createTestUser(id = 3, reputation = 150)
+        )
+        // Ensure DB is empty so it fetches from API
+        setupRepository(ApiResult.Success(users.toDto()))
+
+        val result = repository.fetchTopUsers()
+
+        // UserRepositoryImpl returns the result of API call directly when fetching from API
+        Assert.assertEquals(users, result.getOrThrow())
+    }
 }

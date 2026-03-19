@@ -13,21 +13,25 @@ class UserDetailsViewModel(
 ) : FollowViewModel<UserDetailsUiState>(UserDetailsUiState.Loading, followedUsersRepository) {
 
     init {
-        fetchUserDetails()
+        loadUserDetails()
     }
 
     fun onFollowClick() {
         toggleFollowAsync(userId)
     }
 
-    private fun fetchUserDetails() {
+    fun retry() {
+        loadUserDetails()
+    }
+
+    private fun loadUserDetails() {
         _uiState.value = UserDetailsUiState.Loading
 
         viewModelScope.launch {
             userRepository.fetchUserDetails(userId)
                 .onSuccess { _uiState.value = UserDetailsUiState.Success(it) }
-                .onFailure {
-                    _uiState.value = UserDetailsUiState.Error("Unable to fetch User by id: $userId")
+                .onFailure { error ->
+                    _uiState.value = UserDetailsUiState.Error(error.message ?: "Unknown Error")
                 }
         }
     }
