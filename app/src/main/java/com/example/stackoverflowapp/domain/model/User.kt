@@ -5,6 +5,8 @@ data class User(
     val displayName: String,
     val reputation: Int,
     val profileImageUrl: String?,
+    val badgeCounts: BadgeCounts?,
     val location: String?,
-    val websiteUrl: String?
+    val websiteUrl: String?,
+    val aboutMe: String? = null
 )

@@ -1,8 +1,5 @@
 package com.example.stackoverflowapp.ui.details
 
-import androidx.compose.animation.AnimatedContentScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,13 +17,11 @@ import com.example.stackoverflowapp.data.image.ImageLoader
 import com.example.stackoverflowapp.ui.components.ErrorStateView
 import com.example.stackoverflowapp.ui.components.LoadingScreen
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserDetailsRoute(
     viewModel: UserDetailsViewModel,
     imageLoader: ImageLoader,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedContentScope,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -61,8 +56,6 @@ fun UserDetailsRoute(
                     isFollowed = state.user.id in followedUserIds,
                     onFollowClick = viewModel::onFollowClick,
                     imageLoader = imageLoader,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedContentScope = animatedContentScope,
                     modifier = modifier.then(Modifier.padding(paddingValues))
                 )
             }

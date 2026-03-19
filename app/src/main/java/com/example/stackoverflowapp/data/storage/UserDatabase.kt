@@ -7,13 +7,14 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.example.stackoverflowapp.domain.model.User
 import androidx.core.database.sqlite.transaction
+import com.example.stackoverflowapp.domain.model.BadgeCounts
 
 open class UserDatabase(context: Context?) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
         private const val DATABASE_NAME = "users.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 3
 
         private const val TABLE_USERS = "users"
         private const val COLUMN_ID = "id"
@@ -22,6 +23,10 @@ open class UserDatabase(context: Context?) :
         private const val COLUMN_PROFILE_IMAGE = "profile_image"
         private const val COLUMN_LOCATION = "location"
         private const val COLUMN_WEBSITE_URL = "website_url"
+        private const val COLUMN_BRONZE_BADGES = "bronze_badges"
+        private const val COLUMN_SILVER_BADGES = "silver_badges"
+        private const val COLUMN_GOLD_BADGES = "gold_badges"
+        private const val COLUMN_ABOUT_ME = "about_me"
 
         private const val CREATE_USERS_TABLE = """
             CREATE TABLE $TABLE_USERS (
@@ -30,7 +35,11 @@ open class UserDatabase(context: Context?) :
                 $COLUMN_REPUTATION INTEGER,
                 $COLUMN_PROFILE_IMAGE TEXT,
                 $COLUMN_LOCATION TEXT,
-                $COLUMN_WEBSITE_URL TEXT
+                $COLUMN_WEBSITE_URL TEXT,
+                $COLUMN_BRONZE_BADGES INTEGER DEFAULT 0,
+                $COLUMN_SILVER_BADGES INTEGER DEFAULT 0,
+                $COLUMN_GOLD_BADGES INTEGER DEFAULT 0,
+                $COLUMN_ABOUT_ME TEXT
             )
         """
     }
@@ -40,8 +49,14 @@ open class UserDatabase(context: Context?) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_USERS")
-        onCreate(db)
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE $TABLE_USERS ADD COLUMN $COLUMN_BRONZE_BADGES INTEGER DEFAULT 0")
+            db.execSQL("ALTER TABLE $TABLE_USERS ADD COLUMN $COLUMN_SILVER_BADGES INTEGER DEFAULT 0")
+            db.execSQL("ALTER TABLE $TABLE_USERS ADD COLUMN $COLUMN_GOLD_BADGES INTEGER DEFAULT 0")
+        }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE $TABLE_USERS ADD COLUMN $COLUMN_ABOUT_ME TEXT")
+        }
     }
 
     open fun insertUsers(users: List<User>) {
@@ -55,6 +70,10 @@ open class UserDatabase(context: Context?) :
                     put(COLUMN_PROFILE_IMAGE, user.profileImageUrl)
                     put(COLUMN_LOCATION, user.location)
                     put(COLUMN_WEBSITE_URL, user.websiteUrl)
+                    put(COLUMN_BRONZE_BADGES, user.badgeCounts?.bronze ?: 0)
+                    put(COLUMN_SILVER_BADGES, user.badgeCounts?.silver ?: 0)
+                    put(COLUMN_GOLD_BADGES, user.badgeCounts?.gold ?: 0)
+                    put(COLUMN_ABOUT_ME, user.aboutMe)
                 }
                 insertWithOnConflict(TABLE_USERS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
             }
@@ -121,7 +140,13 @@ open class UserDatabase(context: Context?) :
             reputation = getInt(getColumnIndexOrThrow(COLUMN_REPUTATION)),
             profileImageUrl = getString(getColumnIndexOrThrow(COLUMN_PROFILE_IMAGE)),
             location = getString(getColumnIndexOrThrow(COLUMN_LOCATION)),
-            websiteUrl = getString(getColumnIndexOrThrow(COLUMN_WEBSITE_URL))
+            websiteUrl = getString(getColumnIndexOrThrow(COLUMN_WEBSITE_URL)),
+            badgeCounts = BadgeCounts(
+                bronze = getInt(getColumnIndexOrThrow(COLUMN_BRONZE_BADGES)),
+                silver = getInt(getColumnIndexOrThrow(COLUMN_SILVER_BADGES)),
+                gold = getInt(getColumnIndexOrThrow(COLUMN_GOLD_BADGES))
+            ),
+            aboutMe = getString(getColumnIndexOrThrow(COLUMN_ABOUT_ME))
         )
     }
 }

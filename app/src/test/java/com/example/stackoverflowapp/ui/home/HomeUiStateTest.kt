@@ -1,6 +1,7 @@
 package com.example.stackoverflowapp.ui.home
 
 import com.example.stackoverflowapp.domain.model.User
+import com.example.stackoverflowapp.domain.model.createTestUser
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -14,7 +15,7 @@ class HomeUiStateTest {
 
     @Test
     fun `non empty list maps to Success state`() {
-        val state = listOf(User(1, "Jeff", 1, null, null, null))
+        val state = listOf(createTestUser(id = 1, name = "Jeff"))
             .toHomeUiState(emptySet())
         assertTrue(state is HomeUiState.Success)
     }

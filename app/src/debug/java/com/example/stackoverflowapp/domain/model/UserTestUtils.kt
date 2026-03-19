@@ -2,9 +2,12 @@ package com.example.stackoverflowapp.domain.model
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 
 /**
@@ -17,18 +20,23 @@ fun createTestUser(
     reputation: Int = 100,
     imageUrl: String? = null,
     location: String? = "London",
-    website: String? = "https://example.com"
+    website: String? = "https://example.com",
+    badgeCounts: BadgeCounts? = BadgeCounts(1, 2, 3),
+    aboutMe: String? = null
 ) = User(
     id = id,
     displayName = name,
     reputation = reputation,
     profileImageUrl = imageUrl,
     location = location,
-    websiteUrl = website
+    websiteUrl = website,
+    badgeCounts = badgeCounts,
+    aboutMe = aboutMe
 )
 
 /**
  * Reusable test wrapper to provide Shared Transition scopes.
+ * Transitions are disabled by default to ensure UI stability during assertions.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -36,7 +44,11 @@ fun SharedTransitionTestContext(
     content: @Composable SharedTransitionScope.(AnimatedContentScope) -> Unit
 ) {
     SharedTransitionLayout {
-        AnimatedContent(targetState = true, label = "test") { _ ->
+        AnimatedContent(
+            targetState = true,
+            label = "test",
+            transitionSpec = { EnterTransition.None togetherWith ExitTransition.None }
+        ) { _ ->
             content(this@SharedTransitionLayout, this@AnimatedContent)
         }
     }

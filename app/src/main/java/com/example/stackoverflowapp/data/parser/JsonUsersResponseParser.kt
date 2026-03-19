@@ -11,14 +11,10 @@ class JsonUsersResponseParser : UsersResponseParser {
 
     override fun parseUsersResponse(json: String): UsersResponseDto {
         return try {
-            val root = JSONObject(json)
-            val itemsArray = root.optJSONArray("items") ?: JSONArray()
+            val itemsArray = JSONObject(json).optJSONArray("items") ?: JSONArray()
 
-            val users = buildList {
-                for (index in 0 until itemsArray.length()) {
-                    val item = itemsArray.optJSONObject(index) ?: continue
-                    parseUser(item)?.let(::add)
-                }
+            val users = (0 until itemsArray.length()).mapNotNull { index ->
+                itemsArray.optJSONObject(index)?.let { parseUser(it) }
             }
 
             UsersResponseDto(items = users)
@@ -45,6 +41,7 @@ class JsonUsersResponseParser : UsersResponseParser {
 
         val location = json.optStringOrNull("location")
         val websiteUrl = json.optStringOrNull("website_url")
+        val aboutMe = json.optStringOrNull("about_me")
 
         return UserDto(
             userId = userId,
@@ -53,7 +50,8 @@ class JsonUsersResponseParser : UsersResponseParser {
             profileImageUrl = profileImageUrl,
             badgeCounts = badgeCounts,
             location = location,
-            websiteUrl = websiteUrl
+            websiteUrl = websiteUrl,
+            aboutMe = aboutMe
         )
     }
 }

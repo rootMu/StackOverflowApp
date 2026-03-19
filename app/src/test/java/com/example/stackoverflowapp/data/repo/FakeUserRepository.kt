@@ -15,10 +15,10 @@ class FakeUserRepository(private var result: Result<List<User>>) : UserRepositor
         return result
     }
 
-    override suspend fun fetchUsersById(userId: Int): Result<User> {
+    override suspend fun fetchUserDetails(userId: Int): Result<User> {
         fetchCallCount++
         delay(10)
-        return Result.success(result.getOrNull()?.first()!!)
+        return result.mapCatching { it.first { user -> user.id == userId } }
     }
 
     override suspend fun refreshUsers(): Result<List<User>> {

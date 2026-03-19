@@ -48,6 +48,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +65,9 @@ import kotlin.math.abs
  */
 private const val TRANSITION_DURATION = 1000
 
+/**
+ * A grid view of users displayed as Polaroid-style cards.
+ */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun UsersPolaroidGridView(
@@ -105,6 +110,9 @@ fun UsersPolaroidGridView(
     }
 }
 
+/**
+ * A Polaroid-style card representing a user.
+ */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun UserPolaroidCard(
@@ -164,7 +172,9 @@ private fun UserPolaroidCard(
                             disabledContainerColor = Color(0xFFF0E1B8),
                             disabledLabelColor = Color(0xFF6F530A)
                         ),
-                        modifier = Modifier.align(Alignment.TopStart).padding(4.dp)
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(4.dp)
                     )
 
                     IconButton(
@@ -172,12 +182,14 @@ private fun UserPolaroidCard(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(4.dp)
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = if (isFollowed) {
+                                    "Unfollow ${user.displayName}"
+                                } else {
+                                    "Follow ${user.displayName}"
+                                }
+                            }
                             .testTag("follow_button_${user.id}")
-                            .sharedElement(
-                                rememberSharedContentState(key = "follow_star_${user.id}"),
-                                animatedVisibilityScope = animatedContentScope,
-                                boundsTransform = { _, _ -> tween(durationMillis = TRANSITION_DURATION) }
-                            )
                     ) {
                         Surface(
                             shape = CircleShape,
@@ -210,6 +222,9 @@ private fun UserPolaroidCard(
     }
 }
 
+/**
+ * Asynchronously loads an image and displays it with a crossfade effect.
+ */
 @Composable
 fun AsyncImageWithCrossfade(
     url: String?,

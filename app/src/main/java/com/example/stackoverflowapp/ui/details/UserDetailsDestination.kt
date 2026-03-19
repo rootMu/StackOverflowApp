@@ -1,6 +1,8 @@
 package com.example.stackoverflowapp.ui.details
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -9,6 +11,7 @@ import androidx.navigation.navArgument
 import com.example.stackoverflowapp.di.LocalAppContainer
 import com.example.stackoverflowapp.ui.main.createViewModel
 import com.example.stackoverflowapp.ui.navigation.Destination
+import com.example.stackoverflowapp.ui.transitions.LocalAnimatedVisibilityScope
 
 object UserDetailsDestination : Destination {
 
@@ -16,6 +19,7 @@ object UserDetailsDestination : Destination {
 
     override val route = "details/{$ARG_USER_ID}"
 
+    @OptIn(ExperimentalSharedTransitionApi::class)
     override fun register(
         navGraphBuilder: NavGraphBuilder,
         navController: NavHostController,
@@ -41,15 +45,17 @@ object UserDetailsDestination : Destination {
                 )
             }
 
-            UserDetailsRoute(
-                viewModel = viewModel,
-                imageLoader = LocalAppContainer.current.imageLoader,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedContentScope = this@composable,
-                onBack = {
-                    navController.popBackStack()
-                }
-            )
+            CompositionLocalProvider(
+                LocalAnimatedVisibilityScope provides this
+            ) {
+                UserDetailsRoute(
+                    viewModel = viewModel,
+                    imageLoader = LocalAppContainer.current.imageLoader,
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
     }
 }

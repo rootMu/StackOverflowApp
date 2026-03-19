@@ -24,11 +24,10 @@ class UserDetailsViewModel(
         _uiState.value = UserDetailsUiState.Loading
 
         viewModelScope.launch {
-
-            userRepository.fetchUsersById(userId)
+            userRepository.fetchUserDetails(userId)
                 .onSuccess { _uiState.value = UserDetailsUiState.Success(it) }
                 .onFailure {
-                    _uiState.value = UserDetailsUiState.Error("Unable to fetch User by id:$userId")
+                    _uiState.value = UserDetailsUiState.Error("Unable to fetch User by id: $userId")
                 }
         }
     }
