@@ -9,6 +9,8 @@ import com.example.stackoverflowapp.data.network.HttpClient
 import com.example.stackoverflowapp.data.network.HttpUrlConnectionClient
 import com.example.stackoverflowapp.data.parser.JsonUsersResponseParser
 import com.example.stackoverflowapp.data.parser.UsersResponseParser
+import com.example.stackoverflowapp.data.repo.DefaultFollowedUsersRepository
+import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.data.repo.UserRepositoryImpl
 import com.example.stackoverflowapp.data.storage.SharedPrefsUserStore
@@ -32,8 +34,8 @@ import com.example.stackoverflowapp.data.storage.UserStore
 
 interface AppContainer {
     val userRepository: UserRepository
+    val followedUsersRepository: FollowedUsersRepository
     val imageLoader: ImageLoader
-    val userStore: UserStore
     val userDatabase: UserDatabase
 }
 
@@ -59,7 +61,11 @@ class DefaultAppContainer(private val context: Context): AppContainer {
         HttpImageLoader(httpClient)
     }
 
-    override val userStore: UserStore by lazy {
+    override val followedUsersRepository: DefaultFollowedUsersRepository by lazy {
+        DefaultFollowedUsersRepository(userStore)
+    }
+
+    private val userStore: UserStore by lazy {
         SharedPrefsUserStore(context)
     }
 

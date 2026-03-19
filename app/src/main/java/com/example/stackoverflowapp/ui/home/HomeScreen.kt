@@ -1,22 +1,31 @@
-package com.example.stackoverflowapp.ui.components
+package com.example.stackoverflowapp.ui.home
 
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.stackoverflowapp.data.image.ImageLoader
 import com.example.stackoverflowapp.domain.model.User
-import com.example.stackoverflowapp.ui.home.HomeUiState
+import com.example.stackoverflowapp.ui.components.EmptyStateView
+import com.example.stackoverflowapp.ui.components.ErrorStateView
+import com.example.stackoverflowapp.ui.components.LoadingScreen
+import com.example.stackoverflowapp.ui.components.UsersPolaroidGridView
 
 @Composable
 fun HomeScreen(
     gridState: LazyGridState,
     uiState: HomeUiState,
     users: List<User>,
+    followedUsers: Set<Int>,
     searchQuery: String,
     showFavouritesOnly: Boolean,
     imageLoader: ImageLoader,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedContentScope: AnimatedContentScope,
     onRetry: () -> Unit,
+    onUserClick: (Int) -> Unit,
     onFollowClick: (Int) -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier
@@ -39,9 +48,10 @@ fun HomeScreen(
 
         is HomeUiState.Success -> if (users.isEmpty()) {
 
-            val title = if(showFavouritesOnly) "No favourites found" else "No users found"
+            val title = if (showFavouritesOnly) "No favourites found" else "No users found"
 
-            val message = if(searchQuery.isBlank()) "" else "We couldn't find any users matching '$searchQuery'."
+            val message =
+                if (searchQuery.isBlank()) "" else "We couldn't find any users matching '$searchQuery'."
 
             EmptyStateView(
                 showFavouritesOnly = showFavouritesOnly,
@@ -52,10 +62,13 @@ fun HomeScreen(
             UsersPolaroidGridView(
                 gridState = gridState,
                 users = users,
-                followedUserIds = uiState.followedUserIds,
+                followedUsers = followedUsers,
                 modifier = modifier,
+                onUserClick = onUserClick,
                 onFollowClick = onFollowClick,
                 imageLoader = imageLoader,
+                sharedTransitionScope = sharedTransitionScope,
+                animatedContentScope = animatedContentScope,
                 contentPadding = contentPadding
             )
         }

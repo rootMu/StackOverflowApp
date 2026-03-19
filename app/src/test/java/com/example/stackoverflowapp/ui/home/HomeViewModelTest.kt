@@ -2,9 +2,13 @@ package com.example.stackoverflowapp.ui.home
 
 import androidx.compose.runtime.snapshots.Snapshot.Companion.withMutableSnapshot
 import com.example.stackoverflowapp.MainDispatcherRule
+import com.example.stackoverflowapp.data.repo.FakeFollowUserRepository
+import com.example.stackoverflowapp.data.repo.FakeUserRepository
+import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.data.storage.UserStore
 import com.example.stackoverflowapp.domain.model.User
+import com.example.stackoverflowapp.domain.model.createTestUser
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -27,7 +31,7 @@ class HomeViewModelTest {
 
     @Test
     fun `init state transitions correctly`() = runTest {
-        val users = listOf(createUser(1))
+        val users = listOf(createTestUser(1))
         val repo = FakeUserRepository(Result.success(users))
         val viewModel = createViewModel(repo)
 
@@ -60,10 +64,10 @@ class HomeViewModelTest {
         val initialIds = setOf(1, 2)
         val viewModel = createViewModel(
             FakeUserRepository(Result.success(emptyList())),
-            FakeUserStore(initialIds)
+            FakeFollowUserRepository(FakeUserStore(initialIds))
         )
         advanceUntilIdle()
-        assertEquals(initialIds, viewModel.followedUserIds)
+        assertEquals(initialIds, viewModel.followedUserIds.value)
     }
 
     @Test
@@ -71,19 +75,22 @@ class HomeViewModelTest {
         val viewModel = createViewModel(FakeUserRepository(Result.success(emptyList())))
         advanceUntilIdle()
 
-        repeat(7) { viewModel.toggleFollow(1) }
+        repeat(7) { viewModel.onFollowClick(1) }
         advanceUntilIdle()
 
         assertTrue(
             "Odd number of toggles should result in followed",
-            1 in viewModel.followedUserIds
+            1 in viewModel.followedUserIds.value
         )
     }
 
     @Test
     fun `toggleFollow updates state and persists correctly`() = runTest {
         val store = FakeUserStore()
-        val (viewModel, _) = initAndGetSuccess(listOf(createUser(1)), store)
+        val (viewModel, _) = initAndGetSuccess(
+            listOf(createTestUser(1)),
+            FakeFollowUserRepository(store)
+        )
 
         verifyToggle(viewModel, store, id = 1, shouldBeFollowed = true)
         verifyToggle(viewModel, store, id = 1, shouldBeFollowed = false)
@@ -91,7 +98,7 @@ class HomeViewModelTest {
 
     @Test
     fun `refresh failure preserves data`() = runTest {
-        val users = listOf(createUser(1))
+        val users = listOf(createTestUser(1))
         val repo = FakeUserRepository(Result.success(users))
         val viewModel = createViewModel(repo).apply { advanceUntilIdle() }
 
@@ -107,8 +114,8 @@ class HomeViewModelTest {
 
     @Test
     fun `searchQuery filters users list correctly`() = runTest {
-        val user1 = createUser(1, "Jeff Atwood")
-        val user2 = createUser(2, "Joel Spolsky")
+        val user1 = createTestUser(1, "Jeff Atwood")
+        val user2 = createTestUser(2, "Joel Spolsky")
         val repo = FakeUserRepository(Result.success(listOf(user1, user2)))
         val viewModel = createViewModel(repo)
 
@@ -127,8 +134,8 @@ class HomeViewModelTest {
 
     @Test
     fun `filteredUsers reacts to search query case-insensitively`() = runTest {
-        val user1 = createUser(id = 1, name = "Jeff Atwood")
-        val user2 = createUser(id = 2, name = "Joel Spolsky")
+        val user1 = createTestUser(id = 1, name = "Jeff Atwood")
+        val user2 = createTestUser(id = 2, name = "Joel Spolsky")
         val (viewModel, _) = initAndGetSuccess(listOf(user1, user2))
 
         backgroundCollect(viewModel.filteredUsers)
@@ -144,10 +151,13 @@ class HomeViewModelTest {
 
     @Test
     fun `filteredUsers filters by favorites correctly`() = runTest {
-        val user1 = createUser(id = 1, name = "Jeff")
-        val user2 = createUser(id = 2, name = "Joel")
+        val user1 = createTestUser(id = 1, name = "Jeff")
+        val user2 = createTestUser(id = 2, name = "Joel")
         val store = FakeUserStore(initialIds = setOf(2))
-        val (viewModel, _) = initAndGetSuccess(listOf(user1, user2), store)
+        val (viewModel, _) = initAndGetSuccess(
+            listOf(user1, user2),
+            FakeFollowUserRepository(store)
+        )
 
         viewModel.toggleFavoritesFilter()
 
@@ -160,8 +170,8 @@ class HomeViewModelTest {
 
     @Test
     fun `filteredUsers sorts by reputation ascending and descending`() = runTest {
-        val userLow = createUser(id = 1, name = "Low").copy(reputation = 10)
-        val userHigh = createUser(id = 2, name = "High").copy(reputation = 1000)
+        val userLow = createTestUser(id = 1, name = "Low").copy(reputation = 10)
+        val userHigh = createTestUser(id = 2, name = "High").copy(reputation = 1000)
         val (viewModel, _) = initAndGetSuccess(listOf(userLow, userHigh))
 
         backgroundCollect(viewModel.filteredUsers)
@@ -179,8 +189,8 @@ class HomeViewModelTest {
 
     @Test
     fun `filteredUsers sorts by name A-Z`() = runTest {
-        val userB = createUser(id = 1, name = "Bob")
-        val userA = createUser(id = 2, name = "Alice")
+        val userB = createTestUser(id = 1, name = "Bob")
+        val userA = createTestUser(id = 2, name = "Alice")
         val (viewModel, _) = initAndGetSuccess(listOf(userB, userA))
 
         viewModel.onSortOrderChange(HomeViewModel.SortOrder.NAME_ASC)
@@ -193,10 +203,11 @@ class HomeViewModelTest {
 
     @Test
     fun `filteredUsers combines multiple filters correctly`() = runTest {
-        val user1 = createUser(id = 1, name = "Apple").copy(reputation = 10)
-        val user2 = createUser(id = 2, name = "April").copy(reputation = 500)
+        val user1 = createTestUser(id = 1, name = "Apple").copy(reputation = 10)
+        val user2 = createTestUser(id = 2, name = "April").copy(reputation = 500)
         val store = FakeUserStore(initialIds = setOf(1, 2))
-        val (viewModel, _) = initAndGetSuccess(listOf(user1, user2), store)
+        val followedUsersRepository = FakeFollowUserRepository(store)
+        val (viewModel, _) = initAndGetSuccess(listOf(user1, user2), followedUsersRepository)
 
         viewModel.onSearchQueryChange("Ap")
         viewModel.toggleFavoritesFilter()
@@ -210,10 +221,10 @@ class HomeViewModelTest {
 
     private fun TestScope.initAndGetSuccess(
         users: List<User> = emptyList(),
-        store: UserStore = FakeUserStore()
+        followedUsersRepository: FollowedUsersRepository = FakeFollowUserRepository(FakeUserStore())
     ): Pair<HomeViewModel, HomeUiState.Success> {
         val repo = FakeUserRepository(Result.success(users))
-        val viewModel = createViewModel(repo, store)
+        val viewModel = createViewModel(repo, followedUsersRepository)
         advanceUntilIdle()
         val state = viewModel.uiState.value as HomeUiState.Success
         return viewModel to state
@@ -225,9 +236,9 @@ class HomeViewModelTest {
         id: Int,
         shouldBeFollowed: Boolean
     ) {
-        viewModel.toggleFollow(id)
+        viewModel.onFollowClick(id)
         runCurrent()
-        assertEquals(shouldBeFollowed, id in viewModel.followedUserIds)
+        assertEquals(shouldBeFollowed, id in viewModel.followedUserIds.value)
         assertSuccessState(viewModel.uiState.value) {
             assertEquals(shouldBeFollowed, id in it.followedUserIds)
         }
@@ -237,11 +248,8 @@ class HomeViewModelTest {
 
     private fun createViewModel(
         repo: UserRepository,
-        store: UserStore = FakeUserStore()
-    ) = HomeViewModel(repo, store)
-
-    private fun createUser(id: Int, name: String = "User $id") =
-        User(id = id, displayName = name, reputation = 100, profileImageUrl = null)
+        followedUsersRepository: FollowedUsersRepository = FakeFollowUserRepository(FakeUserStore())
+    ) = HomeViewModel(repo, followedUsersRepository)
 
     private fun assertSuccessState(state: HomeUiState, block: (HomeUiState.Success) -> Unit) {
         assertTrue("Expected Success state but was $state", state is HomeUiState.Success)

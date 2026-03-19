@@ -1,17 +1,20 @@
 package com.example.stackoverflowapp.ui.home
 
-import androidx.lifecycle.ViewModel
+import com.example.stackoverflowapp.data.repo.FakeFollowUserRepository
+import com.example.stackoverflowapp.data.repo.FakeUserRepository
+import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.repo.UserRepository
-import com.example.stackoverflowapp.data.storage.UserStore
-import org.junit.Assert.assertThrows
+import com.example.stackoverflowapp.ui.main.GenericViewModelFactory
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeViewModelFactoryTest {
 
     private val repository: UserRepository = FakeUserRepository(Result.success(emptyList()))
-    private val store: UserStore = FakeUserStore()
-    private val factory = HomeViewModelFactory(repository, store)
+    private val followedUsersRepository: FollowedUsersRepository =
+        FakeFollowUserRepository(FakeUserStore())
+    private val factory =
+        GenericViewModelFactory { HomeViewModel(repository, followedUsersRepository) }
 
 
     @Test
@@ -21,15 +24,4 @@ class HomeViewModelFactoryTest {
         assertTrue(viewModel is HomeViewModel)
     }
 
-
-    @Test
-    fun `create throws IllegalArgumentException when unknown ViewModel requested`() {
-        class UnknownViewModel : ViewModel()
-
-        val exception = assertThrows(IllegalArgumentException::class.java) {
-            factory.create(UnknownViewModel::class.java)
-        }
-
-        assertTrue(exception.message!!.contains("Unknown ViewModel class"))
-    }
 }
