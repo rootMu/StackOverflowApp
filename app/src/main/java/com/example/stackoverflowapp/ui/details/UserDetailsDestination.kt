@@ -19,6 +19,8 @@ object UserDetailsDestination : Destination {
 
     override val route = "details/{$ARG_USER_ID}"
 
+    fun createRoute(userId: Int): String = "details/$userId"
+
     @OptIn(ExperimentalSharedTransitionApi::class)
     override fun register(
         navGraphBuilder: NavGraphBuilder,

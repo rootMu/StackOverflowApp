@@ -2,29 +2,37 @@ package com.example.stackoverflowapp.ui.home
 
 import com.example.stackoverflowapp.domain.model.User
 
-sealed interface HomeUiState {
+data class HomeScreenState(
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val users: List<UserUiModel> = emptyList(),
+    val searchQuery: String = "",
+    val sortOrder: SortOrder = SortOrder.REPUTATION_DESC,
+    val showFavouritesOnly: Boolean = false,
+    val error: String? = null
+)
 
-    data object Loading : HomeUiState
+data class UserUiModel(
+    val user: User,
+    val isFollowed: Boolean
+)
 
-    data class Success(
-        val users: List<User>,
-        val followedUserIds: Set<Int> = emptySet(),
-        val isRefreshing: Boolean = false
-    ) : HomeUiState
-
-    /**
-     * Used when the request succeeded but no users are returned.
-     */
-    data object Empty : HomeUiState
-
-    data class Error(
-        val message: String
-    ) : HomeUiState
+enum class SortOrder {
+    NAME_ASC, REPUTATION_DESC, REPUTATION_ASC
 }
 
-internal fun List<User>.toHomeUiState(followedUserIds: Set<Int>): HomeUiState =
+sealed interface HomeUiState {
+    data object Loading : HomeUiState
+    data class Success(
+        val users: List<User>,
+        val isRefreshing: Boolean = false
+    ) : HomeUiState
+    data object Empty : HomeUiState
+    data class Error(val message: String) : HomeUiState
+}
+
+internal fun List<User>.toHomeUiState(): HomeUiState =
     if (isEmpty()) HomeUiState.Empty else HomeUiState.Success(
         users = this,
-        followedUserIds = followedUserIds,
         isRefreshing = false
     )

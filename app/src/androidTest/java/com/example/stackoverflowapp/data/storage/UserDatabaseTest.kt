@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.stackoverflowapp.domain.model.BadgeCounts
 import com.example.stackoverflowapp.domain.model.createTestUser
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -24,12 +25,13 @@ class UserDatabaseTest {
     }
 
     @Test
-    fun databaseMaintainsStrictReputationSorting() {
+    fun databaseMaintainsStrictReputationSorting() = runBlocking {
         val users = listOf(
             createTestUser(id = 1, reputation = 10),
             createTestUser(id = 2, reputation = 500),
             createTestUser(id = 3, reputation = 100)
         )
+
         db.insertUsers(users)
 
         val result = db.getAllUsers()
@@ -40,7 +42,7 @@ class UserDatabaseTest {
     }
 
     @Test
-    fun databaseSavesAndRetrievesBadges() {
+    fun databaseSavesAndRetrievesBadges() = runBlocking {
         val badgeCounts = BadgeCounts(gold = 10, silver = 20, bronze = 30)
         val user = createTestUser(
             id = 123,
@@ -55,7 +57,7 @@ class UserDatabaseTest {
     }
 
     @Test
-    fun getUserById_returnsCorrectUser() {
+    fun getUserById_returnsCorrectUser() = runBlocking {
         val user1 = createTestUser(id = 1, name = "User 1")
         val user2 = createTestUser(id = 2, name = "User 2")
         db.insertUsers(listOf(user1, user2))
@@ -65,13 +67,13 @@ class UserDatabaseTest {
     }
 
     @Test
-    fun getUserById_returnsNull_ifNotFound() {
+    fun getUserById_returnsNull_ifNotFound() = runBlocking {
         val result = db.getUserById(999)
         assertNull(result)
     }
 
     @Test
-    fun databaseSavesAndRetrievesAboutMe() {
+    fun databaseSavesAndRetrievesAboutMe() = runBlocking {
         val user = createTestUser(
             id = 456,
             name = "Bio User",

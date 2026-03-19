@@ -12,10 +12,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.stackoverflowapp.ui.home.HomeViewModel
+import com.example.stackoverflowapp.ui.home.SortOrder
 
 @Composable
-fun FilterRow(viewModel: HomeViewModel) {
+fun FilterRow(
+    sortOrder: SortOrder,
+    showFavouritesOnly: Boolean,
+    onToggleFavorites: () -> Unit,
+    onSortOrderChange: (SortOrder) -> Unit
+) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -23,11 +28,11 @@ fun FilterRow(viewModel: HomeViewModel) {
     ) {
         item {
             FilterChip(
-                selected = viewModel.showFavouritesOnly,
-                onClick = viewModel::toggleFavoritesFilter,
+                selected = showFavouritesOnly,
+                onClick = onToggleFavorites,
                 label = { Text("Favorites") },
                 leadingIcon = {
-                    if (viewModel.showFavouritesOnly) Icon(
+                    if (showFavouritesOnly) Icon(
                         Icons.Default.Check,
                         null
                     )
@@ -36,10 +41,10 @@ fun FilterRow(viewModel: HomeViewModel) {
         }
         item {
             FilterChip(
-                selected = viewModel.sortOrder == HomeViewModel.SortOrder.NAME_ASC,
+                selected = sortOrder == SortOrder.NAME_ASC,
                 onClick = {
-                    viewModel.onSortOrderChange(
-                        HomeViewModel.SortOrder.NAME_ASC
+                    onSortOrderChange(
+                        SortOrder.NAME_ASC
                     )
                 },
                 label = { Text("Name A-Z") }
@@ -47,14 +52,14 @@ fun FilterRow(viewModel: HomeViewModel) {
         }
         item {
             val isRepDesc =
-                viewModel.sortOrder == HomeViewModel.SortOrder.REPUTATION_DESC
+                sortOrder == SortOrder.REPUTATION_DESC
             FilterChip(
                 selected = true,
                 onClick = {
                     val next =
-                        if (isRepDesc) HomeViewModel.SortOrder.REPUTATION_ASC else
-                            HomeViewModel.SortOrder.REPUTATION_DESC
-                    viewModel.onSortOrderChange(next)
+                        if (isRepDesc) SortOrder.REPUTATION_ASC else
+                            SortOrder.REPUTATION_DESC
+                    onSortOrderChange(next)
                 },
                 label = { Text(if (isRepDesc) "Popularity ↓" else "Popularity ↑") }
             )

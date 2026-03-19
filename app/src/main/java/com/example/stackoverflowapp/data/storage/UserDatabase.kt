@@ -5,12 +5,12 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import com.example.stackoverflowapp.domain.model.User
 import androidx.core.database.sqlite.transaction
 import com.example.stackoverflowapp.domain.model.BadgeCounts
+import com.example.stackoverflowapp.domain.model.User
 
 open class UserDatabase(context: Context?) :
-    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION), UserLocalDataSource {
 
     companion object {
         private const val DATABASE_NAME = "users.db"
@@ -59,7 +59,7 @@ open class UserDatabase(context: Context?) :
         }
     }
 
-    open fun insertUsers(users: List<User>) {
+    override suspend fun insertUsers(users: List<User>) {
         val db = writableDatabase
         db.transaction {
             users.forEach { user ->
@@ -80,7 +80,7 @@ open class UserDatabase(context: Context?) :
         }
     }
 
-    open fun getAllUsers(): List<User> {
+    override suspend fun getAllUsers(): List<User> {
         val users = mutableListOf<User>()
         val db = readableDatabase
         val cursor: Cursor = db.query(
@@ -104,7 +104,7 @@ open class UserDatabase(context: Context?) :
         return users
     }
 
-    open fun getUserById(userId: Int): User? {
+    override suspend fun getUserById(userId: Int): User? {
         val db = readableDatabase
         val cursor = db.query(
             TABLE_USERS,
@@ -125,14 +125,10 @@ open class UserDatabase(context: Context?) :
         }
     }
 
-    open fun clearAllUsers() {
+    override suspend fun clearAllUsers() {
         writableDatabase.delete(TABLE_USERS, null, null)
     }
 
-    /**
-     * Maps the current row of the [Cursor] to a [User] domain model.
-     * Assumes the cursor is already positioned at a valid row.
-     */
     private fun Cursor.toUser(): User {
         return User(
             id = getInt(getColumnIndexOrThrow(COLUMN_ID)),
