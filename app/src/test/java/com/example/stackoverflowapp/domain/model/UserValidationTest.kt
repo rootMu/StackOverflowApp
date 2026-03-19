@@ -14,7 +14,7 @@ class UserValidationParameterizedTest(
 ) {
 
     companion object {
-        private val jeff = User(1, "Jeff Atwood", 9001, null)
+        private val jeff = createTestUser(name = "Jeff Atwood", reputation = 9001)
 
         @JvmStatic
         @Parameters(name = "{0}")
@@ -36,7 +36,7 @@ class UserValidationTest {
 
     @Test
     fun `valid user passes validation`() {
-        val user = User(1, "Joel Spolsky", 9001, null)
+        val user = createTestUser(name = "Joel Spolsky", reputation = 9001)
         assertEquals(user, user.validate())
     }
 }

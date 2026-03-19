@@ -13,6 +13,9 @@ class FakeStackOverflowUsersApi(
     var lastPageSize: Int? = null
         private set
 
+    var lastUserId: Int? = null
+        private set
+
     override suspend fun fetchTopUsers(
         page: Int,
         pageSize: Int
@@ -23,8 +26,13 @@ class FakeStackOverflowUsersApi(
         return result
     }
 
-    fun setResponse(newResult: ApiResult.Success<UsersResponseDto>) {
-        result = newResult
+    override suspend fun fetchUserDetails(userId: Int): ApiResult<UsersResponseDto> {
+        callCount++
+        lastUserId = userId
+        return result
     }
 
+    fun setResponse(newResult: ApiResult<UsersResponseDto>) {
+        result = newResult
+    }
 }

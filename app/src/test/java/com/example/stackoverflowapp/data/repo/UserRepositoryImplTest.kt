@@ -1,10 +1,13 @@
+package com.example.stackoverflowapp.data.repo
+
 import com.example.stackoverflowapp.data.api.ApiResult
+import com.example.stackoverflowapp.data.api.BadgeCountsDto
 import com.example.stackoverflowapp.data.api.FakeStackOverflowUsersApi
 import com.example.stackoverflowapp.data.api.UserDto
 import com.example.stackoverflowapp.data.api.UsersResponseDto
-import com.example.stackoverflowapp.data.repo.UserRepositoryImpl
 import com.example.stackoverflowapp.data.storage.FakeUserDatabase
 import com.example.stackoverflowapp.domain.model.User
+import com.example.stackoverflowapp.domain.model.createTestUser
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
@@ -23,20 +26,13 @@ class UserRepositoryImplTest {
         fakeDb = FakeUserDatabase()
     }
 
-    private fun createUser(id: Int) =
-        User(id, "User $id", 100, null)
-
     private fun setupRepository(apiResult: ApiResult<UsersResponseDto>) {
         fakeApi = FakeStackOverflowUsersApi(apiResult)
         repository = UserRepositoryImpl(fakeApi, fakeDb)
     }
 
     private fun setApiSuccess(users: List<User>) {
-        setupRepository(
-            ApiResult.Success(
-                users.toDto()
-            )
-        )
+        setupRepository(ApiResult.Success(users.toDto()))
         fakeApi.setResponse(ApiResult.Success(users.toDto()))
     }
 
@@ -46,21 +42,26 @@ class UserRepositoryImplTest {
         userId = id,
         displayName = displayName,
         reputation = reputation,
-        profileImageUrl = profileImageUrl
+        profileImageUrl = profileImageUrl,
+        badgeCounts = badgeCounts?.let {
+            BadgeCountsDto(
+                bronze = it.bronze,
+                silver = it.silver,
+                gold = it.gold
+            )
+        },
+        location = location,
+        websiteUrl = websiteUrl,
+        aboutMe = aboutMe
     )
-    // --- Tests ---
 
     @Test
     fun `fetchTopUsers returns local data when available`() = runTest {
-        val user = createUser(1)
+        val user = createTestUser(1)
         val list = listOf(user)
         fakeDb.insertUsers(list)
 
-        setupRepository(
-            ApiResult.Success(
-                list.toDto()
-            )
-        )
+        setupRepository(ApiResult.Success(list.toDto()))
 
         val result = repository.fetchTopUsers()
 
@@ -91,20 +92,65 @@ class UserRepositoryImplTest {
 
     @Test
     fun `refreshUsers replaces local cache with fresh data`() = runTest {
-        fakeDb.insertUsers(listOf(createUser(1)))
-        val freshUser = createUser(2)
+        fakeDb.insertUsers(listOf(createTestUser(1)))
+        val freshUser = createTestUser(2)
         val list = listOf(freshUser)
         setApiSuccess(list)
-
-        setupRepository(
-            ApiResult.Success(
-                list.toDto()
-            )
-        )
 
         repository.refreshUsers()
 
         Assert.assertEquals(freshUser, fakeDb.getAllUsers().first())
         Assert.assertEquals(1, fakeDb.getAllUsers().size)
+    }
+
+    @Test
+    fun `fetchUserDetails returns local data if aboutMe is present`() = runTest {
+        val user = createTestUser(id = 123, aboutMe = "I have a bio")
+        fakeDb.insertUsers(listOf(user))
+        setupRepository(ApiResult.Success(UsersResponseDto(emptyList())))
+
+        val result = repository.fetchUserDetails(123)
+
+        Assert.assertTrue(result.isSuccess)
+        Assert.assertEquals(user, result.getOrThrow())
+        Assert.assertEquals(0, fakeApi.callCount)
+    }
+
+    @Test
+    fun `fetchUserDetails calls API and updates cache if aboutMe is missing locally`() = runTest {
+        val localUser = createTestUser(id = 123, aboutMe = null)
+        val apiUser = createTestUser(id = 123, aboutMe = "Bio from API")
+
+        fakeDb.insertUsers(listOf(localUser))
+        setupRepository(ApiResult.Success(UsersResponseDto(listOf(apiUser.toDto()))))
+
+        val result = repository.fetchUserDetails(123)
+
+        Assert.assertTrue(result.isSuccess)
+        Assert.assertEquals(apiUser, result.getOrThrow())
+        Assert.assertEquals(1, fakeApi.callCount)
+        Assert.assertEquals("Bio from API", fakeDb.getUserById(123)?.aboutMe)
+    }
+
+    @Test
+    fun `fetchUserDetails falls back to local data if API fails and user exists`() = runTest {
+        val localUser = createTestUser(id = 123, aboutMe = null)
+        fakeDb.insertUsers(listOf(localUser))
+        setupRepository(ApiResult.Error.Network("No Internet"))
+
+        val result = repository.fetchUserDetails(123)
+
+        Assert.assertTrue(result.isSuccess)
+        Assert.assertEquals(localUser, result.getOrThrow())
+    }
+
+    @Test
+    fun `fetchUserDetails returns failure if API fails and user not in database`() = runTest {
+        setupRepository(ApiResult.Error.Network("No Internet"))
+
+        val result = repository.fetchUserDetails(999)
+
+        Assert.assertTrue(result.isFailure)
+        Assert.assertEquals("No Internet", result.exceptionOrNull()?.message)
     }
 }
