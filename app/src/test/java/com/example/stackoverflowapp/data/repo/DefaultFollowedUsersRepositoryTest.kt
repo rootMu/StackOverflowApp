@@ -1,6 +1,6 @@
 package com.example.stackoverflowapp.data.repo
 
-import com.example.stackoverflowapp.ui.home.FakeUserStore
+import com.example.stackoverflowapp.fakes.FakeUserStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

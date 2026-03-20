@@ -1,11 +1,12 @@
 package com.example.stackoverflowapp.ui.home
 
 import com.example.stackoverflowapp.MainDispatcherRule
-import com.example.stackoverflowapp.data.repo.FakeFollowUserRepository
-import com.example.stackoverflowapp.data.repo.FakeUserRepository
 import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.repo.UserRepository
 import com.example.stackoverflowapp.domain.model.createTestUser
+import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
+import com.example.stackoverflowapp.fakes.FakeUserRepository
+import com.example.stackoverflowapp.fakes.FakeUserStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -25,7 +26,7 @@ import org.junit.Test
 class HomeViewModelTest {
 
     @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
     @Test
     fun `init state transitions correctly`() = runTest {
@@ -34,9 +35,8 @@ class HomeViewModelTest {
         val viewModel = createViewModel(repo)
 
         backgroundCollect(viewModel.screenState)
-        runCurrent()
 
-        assertTrue(viewModel.screenState.value.isLoading)
+        assertTrue("Expected Loading state initially", viewModel.screenState.value.isLoading)
 
         advanceUntilIdle()
         val state = viewModel.screenState.value
@@ -99,12 +99,12 @@ class HomeViewModelTest {
 
         val freshUsers = listOf(createTestUser(1), createTestUser(2))
         repo.setResult(Result.success(freshUsers))
-        
+
         viewModel.refresh()
-        assertTrue(viewModel.screenState.value.isRefreshing)
-        
+        assertTrue("Expected isRefreshing to be true", viewModel.screenState.value.isRefreshing)
+
         advanceUntilIdle()
-        
+
         val state = viewModel.screenState.value
         assertFalse(state.isRefreshing)
         assertEquals(2, state.users.size)
@@ -118,10 +118,10 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.screenState.value.error != null)
-        
+
         repo.setResult(Result.success(listOf(createTestUser(1))))
         viewModel.refresh()
-        
+
         runCurrent()
         assertFalse(viewModel.screenState.value.isRefreshing)
         assertEquals(0, repo.refreshCallCount)
@@ -165,7 +165,8 @@ class HomeViewModelTest {
     fun `search change does not lose current sort order`() = runTest {
         val userLow = createTestUser(id = 1, name = "Alice").copy(reputation = 10)
         val userHigh = createTestUser(id = 2, name = "Bob").copy(reputation = 1000)
-        val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(userLow, userHigh))))
+        val viewModel =
+            createViewModel(FakeUserRepository(Result.success(listOf(userLow, userHigh))))
         backgroundCollect(viewModel.screenState)
         advanceUntilIdle()
 
@@ -180,67 +181,69 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `following a user while favourites-only is enabled causes them to appear immediately`() = runTest {
-        val user1 = createTestUser(id = 1, name = "Jeff")
-        val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(user1))))
-        backgroundCollect(viewModel.screenState)
-        advanceUntilIdle()
+    fun `following a user while favourites-only is enabled causes them to appear immediately`() =
+        runTest {
+            val user1 = createTestUser(id = 1, name = "Jeff")
+            val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(user1))))
+            backgroundCollect(viewModel.screenState)
+            advanceUntilIdle()
 
-        viewModel.toggleFavoritesFilter()
-        runCurrent()
-        assertTrue(viewModel.screenState.value.users.isEmpty())
+            viewModel.toggleFavoritesFilter()
+            runCurrent()
+            assertTrue(viewModel.screenState.value.users.isEmpty())
 
-        viewModel.onFollowClick(1)
-        runCurrent()
-        assertEquals(1, viewModel.screenState.value.users.size)
-        assertEquals(1, viewModel.screenState.value.users[0].user.id)
-    }
+            viewModel.onFollowClick(1)
+            runCurrent()
+            assertEquals(1, viewModel.screenState.value.users.size)
+            assertEquals(1, viewModel.screenState.value.users[0].user.id)
+        }
 
     @Test
-    fun `unfollowing the only favourite while favourites-only is enabled removes them immediately`() = runTest {
-        val user1 = createTestUser(id = 1, name = "Jeff")
-        val store = FakeUserStore(initialIds = setOf(1))
-        val viewModel = createViewModel(
-            FakeUserRepository(Result.success(listOf(user1))),
-            FakeFollowUserRepository(store)
-        )
-        backgroundCollect(viewModel.screenState)
-        advanceUntilIdle()
+    fun `unfollowing the only favourite while favourites-only is enabled removes them immediately`() =
+        runTest {
+            val user1 = createTestUser(id = 1, name = "Jeff")
+            val store = FakeUserStore(initialIds = setOf(1))
+            val viewModel = createViewModel(
+                FakeUserRepository(Result.success(listOf(user1))),
+                FakeFollowUserRepository(store)
+            )
+            backgroundCollect(viewModel.screenState)
+            advanceUntilIdle()
 
-        viewModel.toggleFavoritesFilter()
-        runCurrent()
-        assertEquals(1, viewModel.screenState.value.users.size)
+            viewModel.toggleFavoritesFilter()
+            runCurrent()
+            assertEquals(1, viewModel.screenState.value.users.size)
 
-        viewModel.onFollowClick(1)
-        runCurrent()
-        assertTrue(viewModel.screenState.value.users.isEmpty())
-    }
+            viewModel.onFollowClick(1)
+            runCurrent()
+            assertTrue(viewModel.screenState.value.users.isEmpty())
+        }
 
     @Test
     fun `search, favourites and sorting all recompute correctly after follow toggle`() = runTest {
         val u1 = createTestUser(1, "Alice").copy(reputation = 10)
         val u2 = createTestUser(2, "Alex").copy(reputation = 20)
         val u3 = createTestUser(3, "Bob").copy(reputation = 30)
-        
+
         val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(u1, u2, u3))))
         backgroundCollect(viewModel.screenState)
         advanceUntilIdle()
 
-        viewModel.onSearchQueryChange("Al") // Alice, Alex
-        viewModel.onSortOrderChange(SortOrder.REPUTATION_DESC) // Alex (20), Alice (10)
-        viewModel.toggleFavoritesFilter() // None
+        viewModel.onSearchQueryChange("Al")
+        viewModel.onSortOrderChange(SortOrder.REPUTATION_DESC)
+        viewModel.toggleFavoritesFilter()
         runCurrent()
         assertTrue(viewModel.screenState.value.users.isEmpty())
 
-        viewModel.onFollowClick(1) // Alice
+        viewModel.onFollowClick(1)
         runCurrent()
         assertEquals(1, viewModel.screenState.value.users.size)
         assertEquals(1, viewModel.screenState.value.users[0].user.id)
 
-        viewModel.onFollowClick(2) // Alice, Alex
+        viewModel.onFollowClick(2)
         runCurrent()
         assertEquals(2, viewModel.screenState.value.users.size)
-        assertEquals(2, viewModel.screenState.value.users[0].user.id) // Alex (20) first
+        assertEquals(2, viewModel.screenState.value.users[0].user.id)
     }
 
     @Test
@@ -259,6 +262,24 @@ class HomeViewModelTest {
         runCurrent()
         assertEquals(1, viewModel.screenState.value.users.size)
         assertEquals("Alice", viewModel.screenState.value.users[0].user.displayName)
+    }
+
+    @Test
+    fun `sort by name asc orders users correctly and case-insensitively`() = runTest {
+        val u1 = createTestUser(id = 1, name = "charlie")
+        val u2 = createTestUser(id = 2, name = "Alice")
+        val u3 = createTestUser(id = 3, name = "bob")
+        val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(u1, u2, u3))))
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        viewModel.onSortOrderChange(SortOrder.NAME_ASC)
+        runCurrent()
+
+        val sortedUsers = viewModel.screenState.value.users
+        assertEquals("Alice", sortedUsers[0].user.displayName)
+        assertEquals("bob", sortedUsers[1].user.displayName)
+        assertEquals("charlie", sortedUsers[2].user.displayName)
     }
 
     @Test

@@ -1,25 +1,31 @@
 package com.example.stackoverflowapp.ui.main
 
-import androidx.compose.runtime.Composable
+import android.graphics.Bitmap
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.navigation.NavGraphBuilder
-import androidx.navigation.NavType
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
-import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.stackoverflowapp.data.image.ImageLoader
 import com.example.stackoverflowapp.di.AppContainer
 import com.example.stackoverflowapp.di.LocalAppContainer
+import com.example.stackoverflowapp.domain.model.createTestUser
 import com.example.stackoverflowapp.ui.details.UserDetailsDestination
 import com.example.stackoverflowapp.ui.home.HomeDestination
+import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
+import com.example.stackoverflowapp.fakes.FakeUserRepository
+import com.example.stackoverflowapp.fakes.FakeUserStore
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @RunWith(AndroidJUnit4::class)
 class MainNavigationHostTest {
 
@@ -28,11 +34,22 @@ class MainNavigationHostTest {
 
     private lateinit var navController: TestNavHostController
 
+    private val fakeUserRepo = FakeUserRepository(Result.success(listOf(
+        createTestUser(id = 1, name = "Jeff Atwood")
+    )))
+    
+    private val fakeFollowRepo = FakeFollowUserRepository(FakeUserStore())
+
+    private val fakeImageLoader = object : ImageLoader {
+        override suspend fun loadBitmap(url: String): Bitmap? = null
+        override fun getCachedBitmap(url: String): Bitmap? = null
+    }
+
     private val fakeContainer = object : AppContainer {
-        override val userRepository get() = error("userRepository should not be used in MainNavigationHostTest")
-        override val followedUsersRepository get() = error("followedUsersRepository should not be used in MainNavigationHostTest")
-        override val imageLoader get() = error("imageLoader should not be used in MainNavigationHostTest")
-        override val userDatabase get() = error("userDatabase should not be used in MainNavigationHostTest")
+        override val userRepository = fakeUserRepo
+        override val followedUsersRepository = fakeFollowRepo
+        override val imageLoader = fakeImageLoader
+        override val userDatabase get() = error("not used")
     }
 
     @Test
@@ -48,35 +65,33 @@ class MainNavigationHostTest {
     }
 
     @Test
-    fun mainNavigationHost_navigateToDetails_updatesCurrentRouteAndArgs() {
+    fun clickingUserCard_navigatesToDetailsWithCorrectId() {
         setTestContent()
 
-        val targetUserId = 1234
+        composeRule.onNodeWithText("Jeff Atwood").assertIsDisplayed()
 
-        composeRule.runOnIdle {
-            navController.navigate("details/$targetUserId")
-        }
+        composeRule.onNodeWithText("Jeff Atwood").performClick()
 
         composeRule.runOnIdle {
             assertEquals(
                 UserDetailsDestination.route,
                 navController.currentBackStackEntry?.destination?.route
             )
-
-            val argValue = navController.currentBackStackEntry
-                ?.arguments
-                ?.getInt(UserDetailsDestination.ARG_USER_ID)
-
-            assertEquals(targetUserId, argValue)
+            val idArg = navController.currentBackStackEntry?.arguments?.getInt(UserDetailsDestination.ARG_USER_ID)
+            assertEquals(1, idArg)
         }
     }
 
     @Test
-    fun mainNavigationHost_popBackStack_fromDetails_returnsToHome() {
+    fun navigatingBackFromDetails_returnsToHome() {
         setTestContent()
 
         composeRule.runOnIdle {
-            navController.navigate("details/42")
+            navController.navigate(UserDetailsDestination.createRoute(1))
+        }
+
+        composeRule.runOnIdle {
+            assertEquals(UserDetailsDestination.route, navController.currentBackStackEntry?.destination?.route)
         }
 
         composeRule.runOnIdle {
@@ -84,10 +99,7 @@ class MainNavigationHostTest {
         }
 
         composeRule.runOnIdle {
-            assertEquals(
-                HomeDestination.route,
-                navController.currentBackStackEntry?.destination?.route
-            )
+            assertEquals(HomeDestination.route, navController.currentBackStackEntry?.destination?.route)
         }
     }
 
@@ -99,32 +111,9 @@ class MainNavigationHostTest {
 
             CompositionLocalProvider(LocalAppContainer provides fakeContainer) {
                 MainNavigationHost(
-                    navController = navController,
-                    buildGraph = { _, _ ->
-                        registerTestGraph()
-                    }
+                    navController = navController
                 )
             }
         }
     }
-
-    private fun NavGraphBuilder.registerTestGraph() {
-        composable(HomeDestination.route) {
-            DummyScreen()
-        }
-
-        composable(
-            route = UserDetailsDestination.route,
-            arguments = listOf(
-                navArgument(UserDetailsDestination.ARG_USER_ID) {
-                    type = NavType.IntType
-                }
-            )
-        ) {
-            DummyScreen()
-        }
-    }
-
-    @Composable
-    private fun DummyScreen() = Unit
 }

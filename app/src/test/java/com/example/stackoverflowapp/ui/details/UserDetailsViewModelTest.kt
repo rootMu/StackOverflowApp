@@ -1,11 +1,12 @@
 package com.example.stackoverflowapp.ui.details
 
 import com.example.stackoverflowapp.MainDispatcherRule
-import com.example.stackoverflowapp.data.repo.FakeFollowUserRepository
-import com.example.stackoverflowapp.data.repo.FakeUserRepository
 import com.example.stackoverflowapp.domain.model.createTestUser
-import com.example.stackoverflowapp.ui.home.FakeUserStore
+import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
+import com.example.stackoverflowapp.fakes.FakeUserRepository
+import com.example.stackoverflowapp.fakes.FakeUserStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -17,7 +18,7 @@ import org.junit.Test
 class UserDetailsViewModelTest {
 
     @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    val mainDispatcherRule = MainDispatcherRule(StandardTestDispatcher())
 
     @Test
     fun `init state transitions correctly to success`() = runTest {

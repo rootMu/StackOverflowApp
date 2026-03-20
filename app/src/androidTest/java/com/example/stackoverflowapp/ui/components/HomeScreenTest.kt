@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -15,6 +16,8 @@ import com.example.stackoverflowapp.domain.model.createTestUser
 import com.example.stackoverflowapp.ui.home.HomeScreen
 import com.example.stackoverflowapp.ui.home.HomeScreenState
 import com.example.stackoverflowapp.ui.home.UserUiModel
+import com.example.stackoverflowapp.ui.transitions.LocalAnimatedVisibilityScope
+import com.example.stackoverflowapp.ui.transitions.LocalSharedTransitionScope
 import org.junit.Assert
 import org.junit.Rule
 import org.junit.Test
@@ -51,11 +54,11 @@ class HomeScreenTest {
     }
 
     @Test
-    fun emptyState_showsEmptyMessage() {
+    fun emptyState_noUsers_showsDefaultMessage() {
         composeRule.setContent {
             SharedTransitionTestContext { animatedScope ->
                 HomeScreen(
-                    state = HomeScreenState(users = emptyList()),
+                    state = HomeScreenState(users = emptyList(), searchQuery = ""),
                     gridState = rememberLazyGridState(),
                     imageLoader = fakeImageLoader,
                     onRetry = {},
@@ -68,6 +71,47 @@ class HomeScreenTest {
         }
 
         composeRule.onNodeWithText("No users found").assertIsDisplayed()
+        composeRule.onNodeWithText("No StackOverflow users were returned.").assertIsDisplayed()
+    }
+
+    @Test
+    fun emptyState_withSearchQuery_showsSearchMessage() {
+        composeRule.setContent {
+            SharedTransitionTestContext { animatedScope ->
+                HomeScreen(
+                    state = HomeScreenState(users = emptyList(), searchQuery = "Batman"),
+                    gridState = rememberLazyGridState(),
+                    imageLoader = fakeImageLoader,
+                    onRetry = {},
+                    onUserClick = {},
+                    onFollowClick = {},
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("We couldn't find any users matching 'Batman'.").assertIsDisplayed()
+    }
+
+    @Test
+    fun emptyState_favoritesOnly_showsFavoritesMessage() {
+        composeRule.setContent {
+            SharedTransitionTestContext { animatedScope ->
+                HomeScreen(
+                    state = HomeScreenState(users = emptyList(), showFavouritesOnly = true),
+                    gridState = rememberLazyGridState(),
+                    imageLoader = fakeImageLoader,
+                    onRetry = {},
+                    onUserClick = {},
+                    onFollowClick = {},
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("No favorites found").assertIsDisplayed()
     }
 
     @Test
@@ -106,17 +150,24 @@ class HomeScreenTest {
 
         composeRule.setContent {
             SharedTransitionLayout {
-                AnimatedContent(targetState = true, label = "test") { _ ->
-                    HomeScreen(
-                        state = HomeScreenState(users = uiModels),
-                        gridState = rememberLazyGridState(),
-                        imageLoader = fakeImageLoader,
-                        sharedTransitionScope = this@SharedTransitionLayout,
-                        animatedContentScope = this@AnimatedContent,
-                        onRetry = {},
-                        onUserClick = {},
-                        onFollowClick = {}
-                    )
+                AnimatedContent(targetState = true, label = "test") { animatedState ->
+                    if(animatedState) {
+                        CompositionLocalProvider(
+                            LocalSharedTransitionScope provides this@SharedTransitionLayout,
+                            LocalAnimatedVisibilityScope provides this@AnimatedContent
+                        ) {
+                            HomeScreen(
+                                state = HomeScreenState(users = uiModels),
+                                gridState = rememberLazyGridState(),
+                                imageLoader = fakeImageLoader,
+                                sharedTransitionScope = this@SharedTransitionLayout,
+                                animatedContentScope = this@AnimatedContent,
+                                onRetry = {},
+                                onUserClick = {},
+                                onFollowClick = {}
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -1,4 +1,4 @@
-package com.example.stackoverflowapp.ui.home
+package com.example.stackoverflowapp.fakes
 
 import com.example.stackoverflowapp.data.storage.UserStore
 

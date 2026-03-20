@@ -1,9 +1,10 @@
 package com.example.stackoverflowapp.ui.home
 
-import com.example.stackoverflowapp.data.repo.FakeFollowUserRepository
-import com.example.stackoverflowapp.data.repo.FakeUserRepository
 import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.repo.UserRepository
+import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
+import com.example.stackoverflowapp.fakes.FakeUserRepository
+import com.example.stackoverflowapp.fakes.FakeUserStore
 import com.example.stackoverflowapp.ui.main.GenericViewModelFactory
 import org.junit.Assert.assertTrue
 import org.junit.Test

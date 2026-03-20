@@ -54,14 +54,41 @@ class HomeComponentsTest {
     }
 
     @Test
+    fun errorStateView_displaysTechnicalDetails_whenProvided() {
+        composeRule.setContent {
+            ErrorStateView(
+                title = "Error",
+                message = "Something went wrong",
+                technicalDetails = "404 Not Found",
+                onRetry = {}
+            )
+        }
+
+        composeRule.onNodeWithText("Error code: 404 Not Found").assertIsDisplayed()
+    }
+
+    @Test
     fun emptyStateView_displaysNoUsersFound() {
         composeRule.setContent {
             EmptyStateView(
                 title = "No users found",
-                message = "No Users Found"
+                message = "Try searching for something else"
             )
         }
         composeRule.onNodeWithText("No users found").assertIsDisplayed()
+        composeRule.onNodeWithText("Try searching for something else").assertIsDisplayed()
+    }
+
+    @Test
+    fun emptyStateView_showsDifferentTitle_forFavorites() {
+        composeRule.setContent {
+            EmptyStateView(
+                showFavouritesOnly = true,
+                title = "No favorites yet",
+                message = "Add some users to your favorites"
+            )
+        }
+        composeRule.onNodeWithText("No favorites yet").assertIsDisplayed()
     }
 
     @Test

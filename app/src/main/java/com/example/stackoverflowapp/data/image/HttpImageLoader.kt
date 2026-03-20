@@ -10,7 +10,6 @@ class HttpImageLoader(
     private val httpClient: HttpClient
 ): ImageLoader {
 
-    // Use about 1/8th of available memory for cache
     private val maxMemory = (Runtime.getRuntime().maxMemory() / 1024).toInt()
     private val cacheSize = maxMemory / 8
 

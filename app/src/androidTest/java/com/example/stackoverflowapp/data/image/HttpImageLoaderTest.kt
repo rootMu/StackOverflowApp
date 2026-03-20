@@ -16,23 +16,25 @@ class HttpImageLoaderTest {
     @Test
     fun loadBitmap_returnsBitmap_whenHttpClientReturnsValidImageBytes() {
         val validBytes = create1x1PngBytes()
+        var actualUrl: String? = null
 
         val httpClient = object : HttpClient {
-            var callCount = 0
             override suspend fun get(url: String): NetworkResult<String> = error("Not used")
             override suspend fun getBytes(url: String): NetworkResult<ByteArray> {
-                callCount++
+                actualUrl = url
                 return NetworkResult.Success(validBytes)
             }
         }
 
         val loader = HttpImageLoader(httpClient)
+        val testUrl = "https://example.com/image.png"
 
         val bitmap = runBlocking {
-            loader.loadBitmap("https://example.com/image.png")
+            loader.loadBitmap(testUrl)
         }
 
         assertNotNull(bitmap)
+        assertEquals(testUrl, actualUrl)
     }
 
     @Test
@@ -49,10 +51,11 @@ class HttpImageLoaderTest {
         }
 
         val loader = HttpImageLoader(httpClient)
+        val url = "https://example.com/cache-test.png"
 
         runBlocking {
-            val first = loader.loadBitmap("https://example.com/image.png")
-            val second = loader.loadBitmap("https://example.com/image.png")
+            val first = loader.loadBitmap(url)
+            val second = loader.loadBitmap(url)
             
             assertNotNull(first)
             assertNotNull(second)
@@ -70,13 +73,13 @@ class HttpImageLoaderTest {
         }
 
         val loader = HttpImageLoader(httpClient)
-        val url = "https://example.com/image.png"
+        val url = "https://example.com/direct-cache.png"
 
         runBlocking {
-            assertNull(loader.getCachedBitmap(url))
+            assertNull("Initially cache should be empty", loader.getCachedBitmap(url))
             val loaded = loader.loadBitmap(url)
             assertNotNull(loaded)
-            assertSame(loaded, loader.getCachedBitmap(url))
+            assertSame("Cache should return the loaded bitmap", loaded, loader.getCachedBitmap(url))
         }
     }
 
@@ -113,7 +116,7 @@ class HttpImageLoaderTest {
         val loader = HttpImageLoader(httpClient)
 
         val bitmap = runBlocking {
-            loader.loadBitmap("https://example.com/image.png")
+            loader.loadBitmap("https://example.com/error.png")
         }
 
         assertNull(bitmap)
@@ -133,10 +136,33 @@ class HttpImageLoaderTest {
         val loader = HttpImageLoader(httpClient)
 
         val bitmap = runBlocking {
-            loader.loadBitmap("https://example.com/image.png")
+            loader.loadBitmap("https://example.com/invalid.png")
         }
 
         assertNull(bitmap)
+    }
+
+    @Test
+    fun lruCache_initiallyEmpty_andRespectsDifferentUrls() {
+        val validBytes = create1x1PngBytes()
+        val httpClient = object : HttpClient {
+            override suspend fun get(url: String): NetworkResult<String> = error("Not used")
+            override suspend fun getBytes(url: String): NetworkResult<ByteArray> = NetworkResult.Success(validBytes)
+        }
+
+        val loader = HttpImageLoader(httpClient)
+        val url1 = "https://example.com/1.png"
+        val url2 = "https://example.com/2.png"
+
+        runBlocking {
+            val b1 = loader.loadBitmap(url1)
+            val b2 = loader.loadBitmap(url2)
+            
+            assertNotNull(b1)
+            assertNotNull(b2)
+            assertSame(b1, loader.getCachedBitmap(url1))
+            assertSame(b2, loader.getCachedBitmap(url2))
+        }
     }
 
     private fun create1x1PngBytes(): ByteArray {
