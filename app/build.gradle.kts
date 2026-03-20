@@ -8,10 +8,7 @@ plugins {
 android {
     namespace = "com.example.stackoverflowapp"
 
-    // Keeping your convention helper
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.stackoverflowapp"
@@ -90,14 +87,14 @@ dependencies {
     // ----------------------------
     // Unit tests
     // ----------------------------
-    implementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.json)
 
     // ----------------------------
     // Android / Compose tests
     // ----------------------------
     androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 }

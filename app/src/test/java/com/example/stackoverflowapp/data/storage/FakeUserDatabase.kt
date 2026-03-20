@@ -8,18 +8,18 @@ class FakeUserDatabase : UserDatabase(
 
     private var users = mutableListOf<User>()
 
-    override fun getAllUsers(): List<User> = users
+    override suspend fun getAllUsers(): List<User> = users
 
-    override fun getUserById(userId: Int): User? = users.find { it.id == userId }
+    override suspend fun getUserById(userId: Int): User? = users.find { it.id == userId }
 
-    override fun insertUsers(users: List<User>) {
+    override suspend fun insertUsers(users: List<User>) {
         val newIds = users.map { it.id }.toSet()
         this.users.removeAll { it.id in newIds }
         this.users.addAll(users)
         this.users.sortByDescending { it.reputation }
     }
 
-    override fun clearAllUsers() {
+    override suspend fun clearAllUsers() {
         users.clear()
     }
 

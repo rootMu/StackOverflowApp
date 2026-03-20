@@ -1,5 +1,6 @@
-package com.example.stackoverflowapp.data.repo
+package com.example.stackoverflowapp.fakes
 
+import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.storage.UserStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -1,14 +1,12 @@
 package com.example.stackoverflowapp.ui.home
 
-import androidx.compose.runtime.snapshots.Snapshot.Companion.withMutableSnapshot
 import com.example.stackoverflowapp.MainDispatcherRule
-import com.example.stackoverflowapp.data.repo.FakeFollowUserRepository
-import com.example.stackoverflowapp.data.repo.FakeUserRepository
 import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.repo.UserRepository
-import com.example.stackoverflowapp.data.storage.UserStore
-import com.example.stackoverflowapp.domain.model.User
 import com.example.stackoverflowapp.domain.model.createTestUser
+import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
+import com.example.stackoverflowapp.fakes.FakeUserRepository
+import com.example.stackoverflowapp.fakes.FakeUserStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,6 +17,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -27,7 +26,7 @@ import org.junit.Test
 class HomeViewModelTest {
 
     @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
     @Test
     fun `init state transitions correctly`() = runTest {
@@ -35,215 +34,270 @@ class HomeViewModelTest {
         val repo = FakeUserRepository(Result.success(users))
         val viewModel = createViewModel(repo)
 
-        runCurrent()
+        backgroundCollect(viewModel.screenState)
 
-        assertEquals(HomeUiState.Loading, viewModel.uiState.value)
+        assertTrue("Expected Loading state initially", viewModel.screenState.value.isLoading)
 
         advanceUntilIdle()
-        assertSuccessState(viewModel.uiState.value) {
-            assertEquals(users, it.users)
-        }
+        val state = viewModel.screenState.value
+        assertFalse(state.isLoading)
+        assertEquals(1, state.users.size)
+        assertEquals(users[0], state.users[0].user)
     }
 
     @Test
     fun `init handles empty and error cases`() = runTest {
         val emptyRepo = FakeUserRepository(Result.success(emptyList()))
-        assertEquals(
-            HomeUiState.Empty,
-            createViewModel(emptyRepo).apply { advanceUntilIdle() }.uiState.value
-        )
+        val viewModelEmpty = createViewModel(emptyRepo)
+        backgroundCollect(viewModelEmpty.screenState)
+        advanceUntilIdle()
+        assertTrue(viewModelEmpty.screenState.value.users.isEmpty())
 
         val errorRepo = FakeUserRepository(Result.failure(Exception("Net error")))
-        val state = createViewModel(errorRepo).apply { advanceUntilIdle() }.uiState.value
-        assertTrue(state is HomeUiState.Error)
-        assertEquals("Net error", (state as HomeUiState.Error).message)
+        val viewModelError = createViewModel(errorRepo)
+        backgroundCollect(viewModelError.screenState)
+        advanceUntilIdle()
+        assertEquals("Net error", viewModelError.screenState.value.error)
     }
 
     @Test
-    fun `init loads followed ids from store`() = runTest {
+    fun `init loads followed ids`() = runTest {
         val initialIds = setOf(1, 2)
+        val user1 = createTestUser(1)
         val viewModel = createViewModel(
-            FakeUserRepository(Result.success(emptyList())),
+            FakeUserRepository(Result.success(listOf(user1))),
             FakeFollowUserRepository(FakeUserStore(initialIds))
         )
+        backgroundCollect(viewModel.screenState)
         advanceUntilIdle()
-        assertEquals(initialIds, viewModel.followedUserIds.value)
+        assertTrue(viewModel.screenState.value.users.first { it.user.id == 1 }.isFollowed)
     }
 
     @Test
-    fun `rapid toggling results in consistent state`() = runTest {
-        val viewModel = createViewModel(FakeUserRepository(Result.success(emptyList())))
+    fun `toggleFollow updates state correctly`() = runTest {
+        val user1 = createTestUser(1)
+        val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(user1))))
+        backgroundCollect(viewModel.screenState)
         advanceUntilIdle()
 
-        repeat(7) { viewModel.onFollowClick(1) }
-        advanceUntilIdle()
+        viewModel.onFollowClick(1)
+        runCurrent()
+        assertTrue(viewModel.screenState.value.users.first { it.user.id == 1 }.isFollowed)
 
-        assertTrue(
-            "Odd number of toggles should result in followed",
-            1 in viewModel.followedUserIds.value
-        )
+        viewModel.onFollowClick(1)
+        runCurrent()
+        assertFalse(viewModel.screenState.value.users.first { it.user.id == 1 }.isFollowed)
     }
 
     @Test
-    fun `toggleFollow updates state and persists correctly`() = runTest {
-        val store = FakeUserStore()
-        val (viewModel, _) = initAndGetSuccess(
-            listOf(createTestUser(1)),
-            FakeFollowUserRepository(store)
-        )
+    fun `refresh success updates users and clears refreshing flag`() = runTest {
+        val initialUsers = listOf(createTestUser(1))
+        val repo = FakeUserRepository(Result.success(initialUsers))
+        val viewModel = createViewModel(repo)
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
 
-        verifyToggle(viewModel, store, id = 1, shouldBeFollowed = true)
-        verifyToggle(viewModel, store, id = 1, shouldBeFollowed = false)
+        val freshUsers = listOf(createTestUser(1), createTestUser(2))
+        repo.setResult(Result.success(freshUsers))
+
+        viewModel.refresh()
+        assertTrue("Expected isRefreshing to be true", viewModel.screenState.value.isRefreshing)
+
+        advanceUntilIdle()
+
+        val state = viewModel.screenState.value
+        assertFalse(state.isRefreshing)
+        assertEquals(2, state.users.size)
+    }
+
+    @Test
+    fun `refresh ignored when not in success state`() = runTest {
+        val repo = FakeUserRepository(Result.failure(Exception("Initial Error")))
+        val viewModel = createViewModel(repo)
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.screenState.value.error != null)
+
+        repo.setResult(Result.success(listOf(createTestUser(1))))
+        viewModel.refresh()
+
+        runCurrent()
+        assertFalse(viewModel.screenState.value.isRefreshing)
+        assertEquals(0, repo.refreshCallCount)
     }
 
     @Test
     fun `refresh failure preserves data`() = runTest {
         val users = listOf(createTestUser(1))
         val repo = FakeUserRepository(Result.success(users))
-        val viewModel = createViewModel(repo).apply { advanceUntilIdle() }
+        val viewModel = createViewModel(repo)
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
 
         repo.setResult(Result.failure(Exception("Fail")))
         viewModel.refresh()
         advanceUntilIdle()
 
-        assertSuccessState(viewModel.uiState.value) {
-            assertEquals(users, it.users)
-            assertFalse(it.isRefreshing)
-        }
+        val state = viewModel.screenState.value
+        assertEquals(1, state.users.size)
+        assertFalse(state.isRefreshing)
+        assertNull(state.error)
     }
 
     @Test
-    fun `searchQuery filters users list correctly`() = runTest {
-        val user1 = createTestUser(1, "Jeff Atwood")
-        val user2 = createTestUser(2, "Joel Spolsky")
-        val repo = FakeUserRepository(Result.success(listOf(user1, user2)))
+    fun `search query blank shows all users`() = runTest {
+        val users = listOf(createTestUser(1, "A"), createTestUser(2, "B"))
+        val viewModel = createViewModel(FakeUserRepository(Result.success(users)))
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        viewModel.onSearchQueryChange("A")
+        runCurrent()
+        assertEquals(1, viewModel.screenState.value.users.size)
+
+        viewModel.onSearchQueryChange("")
+        runCurrent()
+        assertEquals(2, viewModel.screenState.value.users.size)
+    }
+
+    @Test
+    fun `search change does not lose current sort order`() = runTest {
+        val userLow = createTestUser(id = 1, name = "Alice").copy(reputation = 10)
+        val userHigh = createTestUser(id = 2, name = "Bob").copy(reputation = 1000)
+        val viewModel =
+            createViewModel(FakeUserRepository(Result.success(listOf(userLow, userHigh))))
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        viewModel.onSortOrderChange(SortOrder.REPUTATION_ASC)
+        runCurrent()
+
+        viewModel.onSearchQueryChange("Bob")
+        runCurrent()
+
+        assertEquals(1, viewModel.screenState.value.users.size)
+        assertEquals(SortOrder.REPUTATION_ASC, viewModel.screenState.value.sortOrder)
+    }
+
+    @Test
+    fun `following a user while favourites-only is enabled causes them to appear immediately`() =
+        runTest {
+            val user1 = createTestUser(id = 1, name = "Jeff")
+            val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(user1))))
+            backgroundCollect(viewModel.screenState)
+            advanceUntilIdle()
+
+            viewModel.toggleFavoritesFilter()
+            runCurrent()
+            assertTrue(viewModel.screenState.value.users.isEmpty())
+
+            viewModel.onFollowClick(1)
+            runCurrent()
+            assertEquals(1, viewModel.screenState.value.users.size)
+            assertEquals(1, viewModel.screenState.value.users[0].user.id)
+        }
+
+    @Test
+    fun `unfollowing the only favourite while favourites-only is enabled removes them immediately`() =
+        runTest {
+            val user1 = createTestUser(id = 1, name = "Jeff")
+            val store = FakeUserStore(initialIds = setOf(1))
+            val viewModel = createViewModel(
+                FakeUserRepository(Result.success(listOf(user1))),
+                FakeFollowUserRepository(store)
+            )
+            backgroundCollect(viewModel.screenState)
+            advanceUntilIdle()
+
+            viewModel.toggleFavoritesFilter()
+            runCurrent()
+            assertEquals(1, viewModel.screenState.value.users.size)
+
+            viewModel.onFollowClick(1)
+            runCurrent()
+            assertTrue(viewModel.screenState.value.users.isEmpty())
+        }
+
+    @Test
+    fun `search, favourites and sorting all recompute correctly after follow toggle`() = runTest {
+        val u1 = createTestUser(1, "Alice").copy(reputation = 10)
+        val u2 = createTestUser(2, "Alex").copy(reputation = 20)
+        val u3 = createTestUser(3, "Bob").copy(reputation = 30)
+
+        val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(u1, u2, u3))))
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        viewModel.onSearchQueryChange("Al")
+        viewModel.onSortOrderChange(SortOrder.REPUTATION_DESC)
+        viewModel.toggleFavoritesFilter()
+        runCurrent()
+        assertTrue(viewModel.screenState.value.users.isEmpty())
+
+        viewModel.onFollowClick(1)
+        runCurrent()
+        assertEquals(1, viewModel.screenState.value.users.size)
+        assertEquals(1, viewModel.screenState.value.users[0].user.id)
+
+        viewModel.onFollowClick(2)
+        runCurrent()
+        assertEquals(2, viewModel.screenState.value.users.size)
+        assertEquals(2, viewModel.screenState.value.users[0].user.id)
+    }
+
+    @Test
+    fun `sort change does not lose current search filter`() = runTest {
+        val user1 = createTestUser(id = 1, name = "Alice").copy(reputation = 100)
+        val user2 = createTestUser(id = 2, name = "Bob").copy(reputation = 200)
+        val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(user1, user2))))
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        viewModel.onSearchQueryChange("Alice")
+        runCurrent()
+        assertEquals(1, viewModel.screenState.value.users.size)
+
+        viewModel.onSortOrderChange(SortOrder.REPUTATION_ASC)
+        runCurrent()
+        assertEquals(1, viewModel.screenState.value.users.size)
+        assertEquals("Alice", viewModel.screenState.value.users[0].user.displayName)
+    }
+
+    @Test
+    fun `sort by name asc orders users correctly and case-insensitively`() = runTest {
+        val u1 = createTestUser(id = 1, name = "charlie")
+        val u2 = createTestUser(id = 2, name = "Alice")
+        val u3 = createTestUser(id = 3, name = "bob")
+        val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(u1, u2, u3))))
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        viewModel.onSortOrderChange(SortOrder.NAME_ASC)
+        runCurrent()
+
+        val sortedUsers = viewModel.screenState.value.users
+        assertEquals("Alice", sortedUsers[0].user.displayName)
+        assertEquals("bob", sortedUsers[1].user.displayName)
+        assertEquals("charlie", sortedUsers[2].user.displayName)
+    }
+
+    @Test
+    fun `error on initial load followed by retry success updates to success`() = runTest {
+        val repo = FakeUserRepository(Result.failure(Exception("Network Error")))
         val viewModel = createViewModel(repo)
-
-        backgroundCollect(viewModel.filteredUsers)
+        backgroundCollect(viewModel.screenState)
         advanceUntilIdle()
 
-        withMutableSnapshot {
-            viewModel.onSearchQueryChange("Jeff")
-        }
+        assertTrue(viewModel.screenState.value.error != null)
 
-        runCurrent()
-
-        assertEquals(1, viewModel.filteredUsers.value.size)
-        assertEquals("Jeff Atwood", viewModel.filteredUsers.value[0].displayName)
-    }
-
-    @Test
-    fun `filteredUsers reacts to search query case-insensitively`() = runTest {
-        val user1 = createTestUser(id = 1, name = "Jeff Atwood")
-        val user2 = createTestUser(id = 2, name = "Joel Spolsky")
-        val (viewModel, _) = initAndGetSuccess(listOf(user1, user2))
-
-        backgroundCollect(viewModel.filteredUsers)
-
-        withMutableSnapshot {
-            viewModel.onSearchQueryChange("jeff")
-        }
-        runCurrent()
-
-        assertEquals(1, viewModel.filteredUsers.value.size)
-        assertEquals("Jeff Atwood", viewModel.filteredUsers.value[0].displayName)
-    }
-
-    @Test
-    fun `filteredUsers filters by favorites correctly`() = runTest {
-        val user1 = createTestUser(id = 1, name = "Jeff")
-        val user2 = createTestUser(id = 2, name = "Joel")
-        val store = FakeUserStore(initialIds = setOf(2))
-        val (viewModel, _) = initAndGetSuccess(
-            listOf(user1, user2),
-            FakeFollowUserRepository(store)
-        )
-
-        viewModel.toggleFavoritesFilter()
-
-        backgroundCollect(viewModel.filteredUsers)
-
-        assertEquals(1, viewModel.filteredUsers.value.size)
-        assertEquals(2, viewModel.filteredUsers.value[0].id)
-        assertEquals("Joel", viewModel.filteredUsers.value[0].displayName)
-    }
-
-    @Test
-    fun `filteredUsers sorts by reputation ascending and descending`() = runTest {
-        val userLow = createTestUser(id = 1, name = "Low").copy(reputation = 10)
-        val userHigh = createTestUser(id = 2, name = "High").copy(reputation = 1000)
-        val (viewModel, _) = initAndGetSuccess(listOf(userLow, userHigh))
-
-        backgroundCollect(viewModel.filteredUsers)
-        runCurrent()
-
-        assertEquals(1000, viewModel.filteredUsers.value[0].reputation)
-
-        withMutableSnapshot {
-            viewModel.onSortOrderChange(HomeViewModel.SortOrder.REPUTATION_ASC)
-        }
-        runCurrent()
-
-        assertEquals(10, viewModel.filteredUsers.value[0].reputation)
-    }
-
-    @Test
-    fun `filteredUsers sorts by name A-Z`() = runTest {
-        val userB = createTestUser(id = 1, name = "Bob")
-        val userA = createTestUser(id = 2, name = "Alice")
-        val (viewModel, _) = initAndGetSuccess(listOf(userB, userA))
-
-        viewModel.onSortOrderChange(HomeViewModel.SortOrder.NAME_ASC)
-
-        backgroundCollect(viewModel.filteredUsers)
-
-        assertEquals("Alice", viewModel.filteredUsers.value[0].displayName)
-        assertEquals("Bob", viewModel.filteredUsers.value[1].displayName)
-    }
-
-    @Test
-    fun `filteredUsers combines multiple filters correctly`() = runTest {
-        val user1 = createTestUser(id = 1, name = "Apple").copy(reputation = 10)
-        val user2 = createTestUser(id = 2, name = "April").copy(reputation = 500)
-        val store = FakeUserStore(initialIds = setOf(1, 2))
-        val followedUsersRepository = FakeFollowUserRepository(store)
-        val (viewModel, _) = initAndGetSuccess(listOf(user1, user2), followedUsersRepository)
-
-        viewModel.onSearchQueryChange("Ap")
-        viewModel.toggleFavoritesFilter()
-        viewModel.onSortOrderChange(HomeViewModel.SortOrder.REPUTATION_DESC)
-
-        backgroundCollect(viewModel.filteredUsers)
-
-        assertEquals(2, viewModel.filteredUsers.value.size)
-        assertEquals("April", viewModel.filteredUsers.value[0].displayName)
-    }
-
-    private fun TestScope.initAndGetSuccess(
-        users: List<User> = emptyList(),
-        followedUsersRepository: FollowedUsersRepository = FakeFollowUserRepository(FakeUserStore())
-    ): Pair<HomeViewModel, HomeUiState.Success> {
-        val repo = FakeUserRepository(Result.success(users))
-        val viewModel = createViewModel(repo, followedUsersRepository)
+        repo.setResult(Result.success(listOf(createTestUser(1))))
+        viewModel.loadUsers()
         advanceUntilIdle()
-        val state = viewModel.uiState.value as HomeUiState.Success
-        return viewModel to state
-    }
 
-    private fun TestScope.verifyToggle(
-        viewModel: HomeViewModel,
-        store: UserStore,
-        id: Int,
-        shouldBeFollowed: Boolean
-    ) {
-        viewModel.onFollowClick(id)
-        runCurrent()
-        assertEquals(shouldBeFollowed, id in viewModel.followedUserIds.value)
-        assertSuccessState(viewModel.uiState.value) {
-            assertEquals(shouldBeFollowed, id in it.followedUserIds)
-        }
-        advanceUntilIdle()
-        assertEquals(shouldBeFollowed, id in store.getFollowedUserIds())
+        val state = viewModel.screenState.value
+        assertNull(state.error)
+        assertEquals(1, state.users.size)
     }
 
     private fun createViewModel(
@@ -251,15 +305,9 @@ class HomeViewModelTest {
         followedUsersRepository: FollowedUsersRepository = FakeFollowUserRepository(FakeUserStore())
     ) = HomeViewModel(repo, followedUsersRepository)
 
-    private fun assertSuccessState(state: HomeUiState, block: (HomeUiState.Success) -> Unit) {
-        assertTrue("Expected Success state but was $state", state is HomeUiState.Success)
-        block(state as HomeUiState.Success)
-    }
-
     private fun TestScope.backgroundCollect(flow: StateFlow<*>) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             flow.collect {}
         }
     }
-
 }

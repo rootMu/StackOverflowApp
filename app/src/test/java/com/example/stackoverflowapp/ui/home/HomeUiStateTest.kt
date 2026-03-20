@@ -9,14 +9,14 @@ class HomeUiStateTest {
 
     @Test
     fun `empty list maps to Empty state`() {
-        val state = emptyList<User>().toHomeUiState(emptySet())
+        val state = emptyList<User>().toHomeUiState()
         assertTrue(state is HomeUiState.Empty)
     }
 
     @Test
     fun `non empty list maps to Success state`() {
         val state = listOf(createTestUser(id = 1, name = "Jeff"))
-            .toHomeUiState(emptySet())
+            .toHomeUiState()
         assertTrue(state is HomeUiState.Success)
     }
 }

@@ -38,14 +38,11 @@ fun HomeRoute(
     onUserClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val users by viewModel.filteredUsers.collectAsStateWithLifecycle()
-
-    val followedUserIds by viewModel.followedUserIds.collectAsStateWithLifecycle()
+    val state by viewModel.screenState.collectAsStateWithLifecycle()
 
     val gridState = rememberLazyGridState()
 
-    LaunchedEffect(viewModel.searchQuery, viewModel.sortOrder, viewModel.showFavouritesOnly) {
+    LaunchedEffect(state.searchQuery, state.sortOrder, state.showFavouritesOnly) {
         gridState.scrollToItem(0)
     }
 
@@ -71,7 +68,7 @@ fun HomeRoute(
                     contentAlignment = Alignment.CenterEnd
                 ) {
                     SearchPillBar(
-                        query = viewModel.searchQuery,
+                        query = state.searchQuery,
                         onQueryChange = viewModel::onSearchQueryChange,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -79,25 +76,26 @@ fun HomeRoute(
                     )
                 }
 
-                FilterRow(viewModel)
+                FilterRow(
+                    sortOrder = state.sortOrder,
+                    showFavouritesOnly = state.showFavouritesOnly,
+                    onToggleFavorites = viewModel::toggleFavoritesFilter,
+                    onSortOrderChange = viewModel::onSortOrderChange
+                )
             }
         }
     ) { paddingValues ->
 
         PullToRefreshBox(
-            isRefreshing = (uiState as? HomeUiState.Success)?.isRefreshing ?: false,
+            isRefreshing = state.isRefreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
             HomeScreen(
+                state = state,
                 gridState = gridState,
-                uiState = uiState,
-                users = users,
-                followedUsers = followedUserIds,
-                showFavouritesOnly = viewModel.showFavouritesOnly,
-                searchQuery = viewModel.searchQuery,
                 imageLoader = imageLoader,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,
