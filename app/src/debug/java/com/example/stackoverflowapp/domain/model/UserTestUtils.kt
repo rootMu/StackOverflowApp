@@ -9,6 +9,9 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import com.example.stackoverflowapp.ui.transitions.LocalAnimatedVisibilityScope
+import com.example.stackoverflowapp.ui.transitions.LocalSharedTransitionScope
 
 /**
  * Helper function to create a [User] for testing purposes.
@@ -48,8 +51,15 @@ fun SharedTransitionTestContext(
             targetState = true,
             label = "test",
             transitionSpec = { EnterTransition.None togetherWith ExitTransition.None }
-        ) { _ ->
-            content(this@SharedTransitionLayout, this@AnimatedContent)
+        ) { targetState ->
+            if (targetState) {
+                CompositionLocalProvider(
+                    LocalSharedTransitionScope provides this@SharedTransitionLayout,
+                    LocalAnimatedVisibilityScope provides this@AnimatedContent
+                ) {
+                    content(this@SharedTransitionLayout, this@AnimatedContent)
+                }
+            }
         }
     }
 }
