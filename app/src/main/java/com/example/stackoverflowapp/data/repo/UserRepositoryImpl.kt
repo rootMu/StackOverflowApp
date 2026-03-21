@@ -4,13 +4,15 @@ import com.example.stackoverflowapp.data.api.BadgeCountsDto
 import com.example.stackoverflowapp.data.api.StackOverflowUsersApi
 import com.example.stackoverflowapp.data.api.UserDto
 import com.example.stackoverflowapp.data.api.toResult
-import com.example.stackoverflowapp.data.storage.UserLocalDataSource
+import com.example.stackoverflowapp.data.storage.UserDatabase
+import com.example.stackoverflowapp.domain.model.AppError
+import com.example.stackoverflowapp.domain.model.AppErrorException
 import com.example.stackoverflowapp.domain.model.BadgeCounts
 import com.example.stackoverflowapp.domain.model.User
 
 class UserRepositoryImpl(
     private val usersApi: StackOverflowUsersApi,
-    private val localDataSource: UserLocalDataSource
+    private val localDataSource: UserDatabase
 ) : UserRepository {
 
     override suspend fun fetchTopUsers(page: Int): Result<List<User>> {
@@ -33,7 +35,7 @@ class UserRepositoryImpl(
         return usersApi.fetchUserDetails(userId)
             .toResult()
             .mapCatching { dto ->
-                val userDto = dto.items.firstOrNull() ?: throw Exception("User not found")
+                val userDto = dto.items.firstOrNull() ?: throw AppErrorException(AppError.Data.NotFound)
                 userDto.toDomain().also { localDataSource.insertUsers(listOf(it)) }
             }
             .let { apiResult ->

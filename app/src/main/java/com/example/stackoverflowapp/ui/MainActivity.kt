@@ -8,7 +8,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.example.stackoverflowapp.StackOverflowApp
 import com.example.stackoverflowapp.di.AppContainer
 import com.example.stackoverflowapp.di.LocalAppContainer
-import com.example.stackoverflowapp.ui.main.MainNavigationHost
+import com.example.stackoverflowapp.ui.main.MainScreen
 import com.example.stackoverflowapp.ui.theme.StackOverflowTheme
 
 class MainActivity : ComponentActivity() {
@@ -26,10 +26,9 @@ class MainActivity : ComponentActivity() {
                 LocalAppContainer provides appContainer
             ) {
                 StackOverflowTheme {
-                    MainNavigationHost()
+                    MainScreen()
                 }
             }
         }
     }
 }
-

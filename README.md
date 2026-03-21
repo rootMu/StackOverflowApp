@@ -53,6 +53,7 @@ The project is organized into the following layers:
     - Top users are cached locally
     - User details are enriched from the API when needed
     - Local data can be used as a fallback in failure scenarios
+- **Global Error Handling**: Centralized interception of exceptions and technical failures, with reactive UI feedback via a global Snackbar system.
 
 ## Architectural Decisions
 
@@ -62,7 +63,6 @@ The app uses a centralized `AppContainer` to manage dependencies manually, in li
 - **Why**: A dedicated composition root keeps object creation explicit and allows constructor injection throughout the app.
 - **Pros**: No library overhead, transparent dependency graph, easy substitution in tests, and simple singleton-style lifecycle management with `lazy`.
 - **Cons**: More boilerplate as the app grows.
-- **Alternative**: A DI framework such as Hilt would reduce wiring but was intentionally avoided for this project.
 
 ### Clean Architecture Layers
 The codebase is divided into `data`, `domain`, and `ui` layers.
@@ -76,14 +76,22 @@ The UI layer uses `ViewModel` classes to expose screen state and receive user-dr
 
 - **Why**: This makes UI behaviour predictable and easier to debug.
 - **Pros**: Clear state ownership, Compose-friendly rendering model, and easier testing of state transitions.
-- **Cons**: Requires explicit state modelling for each screen.
+
+### Reactive Global Error Handling
+The app implements a centralized, reactive error handling strategy to ensure consistent user feedback and prevent silent failures.
+
+- **Why**: To avoid duplicating Snackbar or error-state logic across every ViewModel and screen.
+- **Mechanism**:
+    - **`ErrorBus`**: A singleton `SharedFlow` (replay=0) that acts as a global event stream for `AppError` types.
+    - **`GlobalExceptionHandler`**: Intercepts uncaught thread exceptions and pipes them into the `ErrorBus`.
+    - **Top-level Observation**: The `MainScreen` observes the `ErrorBus` and triggers a `SnackbarHost` to display localized messages.
+- **Pros**: Clean separation between error generation (data/domain) and error presentation (UI), robust handling of unexpected crashes, and a unified user experience.
 
 ### Lightweight Manual Infrastructure
 Networking, JSON parsing, persistence, and image loading are all implemented manually behind abstractions instead of relying on libraries like Retrofit, Moshi, Room, Coil, or Glide.
 
 - **Why**: To demonstrate understanding of the underlying mechanics and maintain full control over implementation details.
 - **Pros**: Excellent learning value, highly explicit behaviour, minimal external dependency surface.
-- **Cons**: More code to maintain and fewer built-in optimizations than mature libraries provide.
 
 ## Screen Overview
 
@@ -120,7 +128,7 @@ The details screen is responsible for:
 
 ## Testing Strategy
 
-- **Unit Testing**: Focused on business logic, repository behaviour, parser correctness, caching logic, and `ViewModel` state transitions.
+- **Unit Testing**: Focused on business logic, repository behaviour, parser correctness, caching logic, `ViewModel` state transitions, and `ErrorBus` propagation.
     - `UserRepositoryImpl` is tested with fake API and database implementations
     - `HomeViewModel` and `UserDetailsViewModel` are tested for loading, success, error, follow, refresh, search, and filtering behaviour
     - The custom network client, parser, image loader, and persistence layers are tested independently
@@ -133,6 +141,12 @@ The details screen is responsible for:
     - `semantics` and `testTag` are used to keep UI tests stable and intentional
 
 ## Challenges & Solutions
+
+### Centralized Error Management
+Implementing a global error system without a framework.
+
+- **Challenge**: Capturing background exceptions that occur outside the standard UI lifecycle.
+- **Solution**: A custom `GlobalExceptionHandler` and a reactive `ErrorBus` allow any layer of the app to broadcast technical or domain failures to a single UI sink.
 
 ### Manual JSON Parsing
 Without Moshi or Gson, a custom `JsonUsersResponseParser` was implemented using `JSONObject`.
@@ -163,7 +177,7 @@ The app supports both cached user lists and richer detail fetches.
 1. **Prerequisites**: Install [Android Studio](https://developer.android.com/studio)
 2. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/StackOverflowApp.git
+   git clone https://github.com/rootMu/StackOverflowApp.git
    ```
 3. **Open Project**: Open the project folder in Android Studio.
 4. **Sync Gradle**: Wait for Android Studio to finish syncing the Gradle files.
@@ -176,6 +190,7 @@ The app supports both cached user lists and richer detail fetches.
 - **DI**: Manual dependency injection implemented via `AppContainer`.
 - **Networking/Data**: Custom network client and parser abstractions are in place.
 - **Persistence**: Basic `UserDatabase` for caching API data, and a separate `UserStore` (SharedPrefs) to persist user "follows" (favourites) independently.
+- **Error Handling**: Centralized `ErrorBus` and `GlobalExceptionHandler` for reactive UI feedback.
 - **UI**: Core features including User Search, Filtering, and User Favouriting are fully functional.
 
 ### Roadmap
@@ -184,5 +199,4 @@ The app supports both cached user lists and richer detail fetches.
 - [ ] **Offline Mode**: Enhance the local storage strategy to support a full offline-first experience.
 - [ ] **Persistence Upgrade**: Evaluate and potentially migrate to [Room](https://developer.android.com/training/data-storage/room) or [DataStore](https://developer.android.com/topic/libraries/architecture/datastore).
 - [ ] **Library Integration**: Consider integrating [Retrofit](https://square.github.io/retrofit/) for networking and [Hilt](https://developer.android.com/training/dependency-injection/hilt-android) for DI.
-- [ ] **Error Handling**: Implement a global error handling and reporting mechanism.
 - [ ] **Observability**: Integrate logging, analytics, and crash reporting (e.g., Timber, Firebase Crashlytics) to monitor app health.

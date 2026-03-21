@@ -3,12 +3,16 @@ package com.example.stackoverflowapp.ui.home
 import com.example.stackoverflowapp.MainDispatcherRule
 import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.repo.UserRepository
+import com.example.stackoverflowapp.domain.ErrorBus
+import com.example.stackoverflowapp.domain.model.AppError
+import com.example.stackoverflowapp.domain.model.AppErrorException
 import com.example.stackoverflowapp.domain.model.createTestUser
 import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
 import com.example.stackoverflowapp.fakes.FakeUserRepository
 import com.example.stackoverflowapp.fakes.FakeUserStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -27,6 +31,8 @@ class HomeViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
+
+    private val errorBus = ErrorBus()
 
     @Test
     fun `init state transitions correctly`() = runTest {
@@ -58,6 +64,23 @@ class HomeViewModelTest {
         backgroundCollect(viewModelError.screenState)
         advanceUntilIdle()
         assertEquals("Net error", viewModelError.screenState.value.error)
+    }
+
+    @Test
+    fun `init reports error to ErrorBus on failure`() = runTest {
+        val expectedError = AppError.Network.NoConnection
+        val repo = FakeUserRepository(Result.failure(AppErrorException(expectedError)))
+        val viewModel = createViewModel(repo)
+        
+        backgroundCollect(viewModel.screenState)
+        
+        val busError = backgroundScope.launch {
+            val error = errorBus.errors.first()
+            assertEquals(expectedError, error)
+        }
+        
+        advanceUntilIdle()
+        busError.cancel()
     }
 
     @Test
@@ -108,6 +131,27 @@ class HomeViewModelTest {
         val state = viewModel.screenState.value
         assertFalse(state.isRefreshing)
         assertEquals(2, state.users.size)
+    }
+
+    @Test
+    fun `refresh reports error to ErrorBus on failure`() = runTest {
+        val initialUsers = listOf(createTestUser(1))
+        val repo = FakeUserRepository(Result.success(initialUsers))
+        val viewModel = createViewModel(repo)
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        val expectedError = AppError.Network.ServerError
+        repo.setResult(Result.failure(AppErrorException(expectedError)))
+        
+        val busError = backgroundScope.launch {
+            val error = errorBus.errors.first()
+            assertEquals(expectedError, error)
+        }
+
+        viewModel.refresh()
+        advanceUntilIdle()
+        busError.cancel()
     }
 
     @Test
@@ -396,10 +440,31 @@ class HomeViewModelTest {
         assertEquals("Should not have called repository again", callCountAfterPage2, repo.fetchCallCount)
     }
 
+    @Test
+    fun `loadMoreUsers reports error to ErrorBus on failure`() = runTest {
+        val page1Users = listOf(createTestUser(1))
+        val repo = FakeUserRepository(Result.success(page1Users))
+        val viewModel = createViewModel(repo)
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        val expectedError = AppError.Network.Timeout
+        repo.setResultForPage(2, Result.failure(AppErrorException(expectedError)))
+
+        val busError = backgroundScope.launch {
+            val error = errorBus.errors.first()
+            assertEquals(expectedError, error)
+        }
+
+        viewModel.loadMoreUsers()
+        advanceUntilIdle()
+        busError.cancel()
+    }
+
     private fun createViewModel(
         repo: UserRepository,
         followedUsersRepository: FollowedUsersRepository = FakeFollowUserRepository(FakeUserStore())
-    ) = HomeViewModel(repo, followedUsersRepository)
+    ) = HomeViewModel(repo, followedUsersRepository, errorBus)
 
     private fun TestScope.backgroundCollect(flow: StateFlow<*>) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {

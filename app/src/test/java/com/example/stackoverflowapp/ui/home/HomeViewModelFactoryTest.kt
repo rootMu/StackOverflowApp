@@ -2,6 +2,7 @@ package com.example.stackoverflowapp.ui.home
 
 import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.repo.UserRepository
+import com.example.stackoverflowapp.domain.ErrorBus
 import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
 import com.example.stackoverflowapp.fakes.FakeUserRepository
 import com.example.stackoverflowapp.fakes.FakeUserStore
@@ -14,8 +15,9 @@ class HomeViewModelFactoryTest {
     private val repository: UserRepository = FakeUserRepository(Result.success(emptyList()))
     private val followedUsersRepository: FollowedUsersRepository =
         FakeFollowUserRepository(FakeUserStore())
+    private val errorBus = ErrorBus()
     private val factory =
-        GenericViewModelFactory { HomeViewModel(repository, followedUsersRepository) }
+        GenericViewModelFactory { HomeViewModel(repository, followedUsersRepository, errorBus) }
 
 
     @Test

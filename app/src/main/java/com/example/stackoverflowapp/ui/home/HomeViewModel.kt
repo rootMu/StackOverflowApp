@@ -3,6 +3,7 @@ package com.example.stackoverflowapp.ui.home
 import androidx.lifecycle.viewModelScope
 import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
 import com.example.stackoverflowapp.data.repo.UserRepository
+import com.example.stackoverflowapp.domain.ErrorBus
 import com.example.stackoverflowapp.domain.model.User
 import com.example.stackoverflowapp.ui.main.FollowViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,8 +16,9 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(
     private val userRepository: UserRepository,
-    followedUsersRepository: FollowedUsersRepository
-) : FollowViewModel<HomeUiState>(HomeUiState.Loading, followedUsersRepository) {
+    followedUsersRepository: FollowedUsersRepository,
+    errorBus: ErrorBus
+) : FollowViewModel<HomeUiState>(HomeUiState.Loading, followedUsersRepository, errorBus) {
 
     private val _searchQuery = MutableStateFlow("")
 
@@ -124,7 +126,8 @@ class HomeViewModel(
                         endReached = users.isEmpty()
                     )
                 },
-                onFailure = {
+                onFailure = { error ->
+                    postError(error)
                     currentState.copy(isRefreshing = false)
                 }
             )
@@ -159,6 +162,7 @@ class HomeViewModel(
                 }
             },
             onFailure = { error ->
+                postError(error)
                 when (currentState) {
                     is HomeUiState.Success -> currentState.copy(
                         isLoadingMore = false,
