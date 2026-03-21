@@ -328,7 +328,7 @@ class HomeViewModelTest {
     @Test
     fun `loadMoreUsers does not trigger if endReached`() = runTest {
         val repo = FakeUserRepository(Result.success(listOf(createTestUser(1))))
-        repo.setResultForPage(2, Result.success(emptyList())) // This will set endReached
+        repo.setResultForPage(2, Result.success(emptyList()))
         
         val viewModel = createViewModel(repo)
         backgroundCollect(viewModel.screenState)
