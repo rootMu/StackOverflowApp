@@ -15,14 +15,24 @@ class FakeStackOverflowUsersApi(
 
     var lastUserId: Int? = null
         private set
+    
+    var lastSort: String? = null
+        private set
+        
+    var lastOrder: String? = null
+        private set
 
     override suspend fun fetchTopUsers(
         page: Int,
-        pageSize: Int
+        pageSize: Int,
+        sort: String,
+        order: String
     ): ApiResult<UsersResponseDto> {
         callCount++
         lastPage = page
         lastPageSize = pageSize
+        lastSort = sort
+        lastOrder = order
         return result
     }
 

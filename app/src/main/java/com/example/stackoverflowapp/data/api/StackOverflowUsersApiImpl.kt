@@ -19,11 +19,15 @@ class StackOverflowUsersApiImpl(
 
     override suspend fun fetchTopUsers(
         page: Int,
-        pageSize: Int
+        pageSize: Int,
+        sort: String,
+        order: String
     ): ApiResult<UsersResponseDto> = executeRequest(
         url = buildUsersUrl(
             page = page,
-            pageSize = pageSize
+            pageSize = pageSize,
+            sort = sort,
+            order = order
         )
     )
 
@@ -60,7 +64,9 @@ class StackOverflowUsersApiImpl(
         page: Int = DEFAULT_PAGE,
         pageSize: Int = DEFAULT_PAGE_SIZE,
         userId: Int? = null,
-        filter: String? = null
+        filter: String? = null,
+        sort: String = "reputation",
+        order: String = "desc"
     ): String {
         val path = buildString {
             append(BASE_URL)
@@ -73,8 +79,8 @@ class StackOverflowUsersApiImpl(
             if (userId == null) {
                 add("page=$page")
                 add("pagesize=$pageSize")
-                add("order=desc")
-                add("sort=reputation")
+                add("order=$order")
+                add("sort=$sort")
             }
 
             filter?.let { add("filter=$it") }

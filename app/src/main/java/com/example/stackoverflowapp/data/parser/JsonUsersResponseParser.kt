@@ -42,6 +42,8 @@ class JsonUsersResponseParser : UsersResponseParser {
         val location = json.optStringOrNull("location")
         val websiteUrl = json.optStringOrNull("website_url")
         val aboutMe = json.optStringOrNull("about_me")
+        val creationDate = json.optLongOrNull("creation_date")
+        val lastModifiedDate = json.optLongOrNull("last_modified_date")
 
         return UserDto(
             userId = userId,
@@ -51,7 +53,9 @@ class JsonUsersResponseParser : UsersResponseParser {
             badgeCounts = badgeCounts,
             location = location,
             websiteUrl = websiteUrl,
-            aboutMe = aboutMe
+            aboutMe = aboutMe,
+            creationDate = creationDate,
+            lastModifiedDate = lastModifiedDate
         )
     }
 }
@@ -70,6 +74,15 @@ private fun JSONObject.optIntOrNull(key: String): Int? {
     if (!has(key) || isNull(key)) return null
     return try {
         getInt(key)
+    } catch (_: JSONException) {
+        null
+    }
+}
+
+private fun JSONObject.optLongOrNull(key: String): Long? {
+    if (!has(key) || isNull(key)) return null
+    return try {
+        getLong(key)
     } catch (_: JSONException) {
         null
     }

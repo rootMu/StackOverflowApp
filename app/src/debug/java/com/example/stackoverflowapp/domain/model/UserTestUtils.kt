@@ -25,7 +25,9 @@ fun createTestUser(
     location: String? = "London",
     website: String? = "https://example.com",
     badgeCounts: BadgeCounts? = BadgeCounts(1, 2, 3),
-    aboutMe: String? = null
+    aboutMe: String? = null,
+    creationDate: Long? = null,
+    lastModifiedDate: Long? = null
 ) = User(
     id = id,
     displayName = name,
@@ -34,7 +36,9 @@ fun createTestUser(
     location = location,
     websiteUrl = website,
     badgeCounts = badgeCounts,
-    aboutMe = aboutMe
+    aboutMe = aboutMe,
+    creationDate = creationDate,
+    lastModifiedDate = lastModifiedDate
 )
 
 /**

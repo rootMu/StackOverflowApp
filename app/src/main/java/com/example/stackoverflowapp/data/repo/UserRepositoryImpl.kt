@@ -66,7 +66,9 @@ private fun UserDto.toDomain(): User {
         badgeCounts = badgeCounts?.toDomain(),
         location = location,
         websiteUrl = websiteUrl,
-        aboutMe = aboutMe
+        aboutMe = aboutMe,
+        creationDate = creationDate,
+        lastModifiedDate = lastModifiedDate
     )
 }
 

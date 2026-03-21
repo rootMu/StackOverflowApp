@@ -170,14 +170,15 @@ class HomeViewModelTest {
         backgroundCollect(viewModel.screenState)
         advanceUntilIdle()
 
-        viewModel.onSortOrderChange(SortOrder.REPUTATION_ASC)
+        val sortOrder = SortOrder(SortField.REPUTATION, SortDirection.ASC)
+        viewModel.onSortOrderChange(sortOrder)
         runCurrent()
 
         viewModel.onSearchQueryChange("Bob")
         runCurrent()
 
         assertEquals(1, viewModel.screenState.value.users.size)
-        assertEquals(SortOrder.REPUTATION_ASC, viewModel.screenState.value.sortOrder)
+        assertEquals(sortOrder, viewModel.screenState.value.sortOrder)
     }
 
     @Test
@@ -230,7 +231,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         viewModel.onSearchQueryChange("Al")
-        viewModel.onSortOrderChange(SortOrder.REPUTATION_DESC)
+        viewModel.onSortOrderChange(SortOrder(SortField.REPUTATION, SortDirection.DESC))
         viewModel.toggleFavoritesFilter()
         runCurrent()
         assertTrue(viewModel.screenState.value.users.isEmpty())
@@ -258,7 +259,7 @@ class HomeViewModelTest {
         runCurrent()
         assertEquals(1, viewModel.screenState.value.users.size)
 
-        viewModel.onSortOrderChange(SortOrder.REPUTATION_ASC)
+        viewModel.onSortOrderChange(SortOrder(SortField.REPUTATION, SortDirection.ASC))
         runCurrent()
         assertEquals(1, viewModel.screenState.value.users.size)
         assertEquals("Alice", viewModel.screenState.value.users[0].user.displayName)
@@ -273,13 +274,62 @@ class HomeViewModelTest {
         backgroundCollect(viewModel.screenState)
         advanceUntilIdle()
 
-        viewModel.onSortOrderChange(SortOrder.NAME_ASC)
+        viewModel.onSortOrderChange(SortOrder(SortField.NAME, SortDirection.ASC))
         runCurrent()
 
         val sortedUsers = viewModel.screenState.value.users
         assertEquals("Alice", sortedUsers[0].user.displayName)
         assertEquals("bob", sortedUsers[1].user.displayName)
         assertEquals("charlie", sortedUsers[2].user.displayName)
+    }
+
+    @Test
+    fun `sort by name desc orders users correctly`() = runTest {
+        val u1 = createTestUser(id = 1, name = "Alice")
+        val u2 = createTestUser(id = 2, name = "Bob")
+        val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(u1, u2))))
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        viewModel.onSortOrderChange(SortOrder(SortField.NAME, SortDirection.DESC))
+        runCurrent()
+
+        assertEquals("Bob", viewModel.screenState.value.users[0].user.displayName)
+        assertEquals("Alice", viewModel.screenState.value.users[1].user.displayName)
+    }
+
+    @Test
+    fun `sort by creation date asc and desc works`() = runTest {
+        val u1 = createTestUser(id = 1, name = "Oldest").copy(creationDate = 100L)
+        val u2 = createTestUser(id = 2, name = "Newest").copy(creationDate = 200L)
+        val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(u1, u2))))
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        viewModel.onSortOrderChange(SortOrder(SortField.CREATION, SortDirection.ASC))
+        runCurrent()
+        assertEquals("Oldest", viewModel.screenState.value.users[0].user.displayName)
+
+        viewModel.onSortOrderChange(SortOrder(SortField.CREATION, SortDirection.DESC))
+        runCurrent()
+        assertEquals("Newest", viewModel.screenState.value.users[0].user.displayName)
+    }
+
+    @Test
+    fun `sort by modified date asc and desc works`() = runTest {
+        val u1 = createTestUser(id = 1, name = "Oldest").copy(lastModifiedDate = 100L)
+        val u2 = createTestUser(id = 2, name = "Newest").copy(lastModifiedDate = 200L)
+        val viewModel = createViewModel(FakeUserRepository(Result.success(listOf(u1, u2))))
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+
+        viewModel.onSortOrderChange(SortOrder(SortField.MODIFIED, SortDirection.ASC))
+        runCurrent()
+        assertEquals("Oldest", viewModel.screenState.value.users[0].user.displayName)
+
+        viewModel.onSortOrderChange(SortOrder(SortField.MODIFIED, SortDirection.DESC))
+        runCurrent()
+        assertEquals("Newest", viewModel.screenState.value.users[0].user.displayName)
     }
 
     @Test

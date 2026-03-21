@@ -28,21 +28,17 @@ class UserDatabaseTest {
     }
 
     @Test
-    fun databaseMaintainsStrictReputationSorting() = runBlocking {
-        val users = listOf(
-            createTestUser(id = 1, reputation = 10),
-            createTestUser(id = 2, reputation = 500),
-            createTestUser(id = 3, reputation = 100)
+    fun databaseSavesAndRetrievesNewSortFields() = runBlocking {
+        val user = createTestUser(
+            id = 1,
+            creationDate = 1000L,
+            lastModifiedDate = 2000L
         )
+        db.insertUsers(listOf(user))
 
-        db.insertUsers(users)
-
-        val result = db.getAllUsers()
-
-        assertEquals(3, result.size)
-        assertEquals(500, result[0].reputation)
-        assertEquals(100, result[1].reputation)
-        assertEquals(10, result[2].reputation)
+        val result = db.getUserById(1)
+        assertEquals(1000L, result?.creationDate)
+        assertEquals(2000L, result?.lastModifiedDate)
     }
 
     @Test
@@ -113,7 +109,7 @@ class UserDatabaseTest {
     }
 
     @Test
-    fun onUpgrade_addsColumnsForVersion2() = runBlocking {
+    fun onUpgrade_addsColumnsForVersion4() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         context.deleteDatabase("upgrade_test.db")
         
@@ -139,5 +135,7 @@ class UserDatabaseTest {
         assertTrue(columns.contains("silver_badges"))
         assertTrue(columns.contains("gold_badges"))
         assertTrue(columns.contains("about_me"))
+        assertTrue(columns.contains("creation_date"))
+        assertTrue(columns.contains("modified_date"))
     }
 }

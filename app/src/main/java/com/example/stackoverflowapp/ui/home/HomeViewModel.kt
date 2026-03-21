@@ -20,7 +20,9 @@ class HomeViewModel(
 
     private val _searchQuery = MutableStateFlow("")
 
-    private val _sortOrder = MutableStateFlow(SortOrder.REPUTATION_DESC)
+    private val _sortOrder = MutableStateFlow(
+        SortOrder.Default
+    )
 
     private val _showFavouritesOnly = MutableStateFlow(false)
 
@@ -56,10 +58,18 @@ class HomeViewModel(
         initialValue = HomeScreenState(isLoading = true)
     )
 
-    private fun getComparator(sort: SortOrder) = when (sort) {
-        SortOrder.NAME_ASC -> compareBy<User> { it.displayName.lowercase() }
-        SortOrder.REPUTATION_DESC -> compareByDescending { it.reputation }
-        SortOrder.REPUTATION_ASC -> compareBy { it.reputation }
+    private fun getComparator(sort: SortOrder): Comparator<User> {
+        val baseComparator = when (sort.field) {
+            SortField.NAME -> compareBy<User> { it.displayName.lowercase() }
+            SortField.REPUTATION -> compareBy<User> { it.reputation }
+            SortField.CREATION -> compareBy<User> { it.creationDate ?: 0L }
+            SortField.MODIFIED -> compareBy<User> { it.lastModifiedDate ?: 0L }
+        }
+
+        return when (sort.direction) {
+            SortDirection.ASC -> baseComparator
+            SortDirection.DESC -> baseComparator.reversed()
+        }
     }
 
     init {
@@ -114,7 +124,7 @@ class HomeViewModel(
                         endReached = users.isEmpty()
                     )
                 },
-                onFailure = { _ ->
+                onFailure = {
                     currentState.copy(isRefreshing = false)
                 }
             )
@@ -128,8 +138,11 @@ class HomeViewModel(
         _uiState.value = result.fold(
             onSuccess = { newUsers ->
                 if (page == 1) {
-                    if (newUsers.isEmpty()) HomeUiState.Empty
-                    else HomeUiState.Success(newUsers, currentPage = 1)
+                    if (newUsers.isEmpty()) {
+                        HomeUiState.Empty
+                    } else {
+                        HomeUiState.Success(newUsers, currentPage = 1)
+                    }
                 } else {
                     val currentSuccess = currentState as? HomeUiState.Success
                     if (currentSuccess != null) {
@@ -151,6 +164,7 @@ class HomeViewModel(
                         isLoadingMore = false,
                         isRefreshing = false
                     )
+
                     else -> HomeUiState.Error(error.message ?: "Unknown Error")
                 }
             }
