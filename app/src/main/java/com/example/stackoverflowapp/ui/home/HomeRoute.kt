@@ -102,6 +102,7 @@ fun HomeRoute(
                 onRetry = viewModel::loadUsers,
                 onUserClick = onUserClick,
                 onFollowClick = viewModel::onFollowClick,
+                onLoadMore = viewModel::loadMoreUsers,
                 contentPadding = PaddingValues(0.dp)
             )
         }

@@ -15,15 +15,21 @@ class FakeUserRepository(private var result: Result<List<User>>) : UserRepositor
         private set
     var refreshCallCount = 0
         private set
+
+    private val resultsByPage = mutableMapOf<Int, Result<List<User>>>()
     
     fun setResult(newResult: Result<List<User>>) {
         result = newResult
     }
 
-    override suspend fun fetchTopUsers(): Result<List<User>> {
+    fun setResultForPage(page: Int, newResult: Result<List<User>>) {
+        resultsByPage[page] = newResult
+    }
+
+    override suspend fun fetchTopUsers(page: Int): Result<List<User>> {
         fetchCallCount++
         delay(10)
-        return result
+        return resultsByPage[page] ?: result
     }
 
     override suspend fun fetchUserDetails(userId: Int): Result<User> {
@@ -38,6 +44,6 @@ class FakeUserRepository(private var result: Result<List<User>>) : UserRepositor
         fetchCallCount++
         refreshCallCount++
         delay(10)
-        return result
+        return resultsByPage[1] ?: result
     }
 }

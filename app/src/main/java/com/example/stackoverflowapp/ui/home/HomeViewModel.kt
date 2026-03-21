@@ -34,6 +34,7 @@ class HomeViewModel(
         HomeScreenState(
             isLoading = state is HomeUiState.Loading,
             isRefreshing = (state as? HomeUiState.Success)?.isRefreshing ?: false,
+            isLoadingMore = (state as? HomeUiState.Success)?.isLoadingMore ?: false,
             users = if (state is HomeUiState.Success) {
                 state.users
                     .filter { it.displayName.contains(query, ignoreCase = true) }
@@ -46,7 +47,8 @@ class HomeViewModel(
             searchQuery = query,
             sortOrder = sort,
             showFavouritesOnly = favouritesOnly,
-            error = (state as? HomeUiState.Error)?.message
+            error = (state as? HomeUiState.Error)?.message,
+            endReached = (state as? HomeUiState.Success)?.endReached ?: false
         )
     }.stateIn(
         scope = viewModelScope,
@@ -82,33 +84,74 @@ class HomeViewModel(
 
     fun loadUsers() {
         viewModelScope.launch {
-            handleUserFetch { userRepository.fetchTopUsers() }
+            handleUserFetch(page = 1)
+        }
+    }
+
+    fun loadMoreUsers() {
+        val currentState = uiState.value as? HomeUiState.Success ?: return
+        if (currentState.isLoadingMore || currentState.endReached) return
+
+        _uiState.value = currentState.copy(isLoadingMore = true)
+
+        viewModelScope.launch {
+            handleUserFetch(page = currentState.currentPage + 1)
         }
     }
 
     fun refresh() {
-        val currentState = _uiState.value as? HomeUiState.Success ?: return
+        val currentState = uiState.value as? HomeUiState.Success ?: return
         _uiState.value = currentState.copy(isRefreshing = true)
 
         viewModelScope.launch {
-            handleUserFetch { userRepository.refreshUsers() }
+            val result = userRepository.refreshUsers()
+            _uiState.value = result.fold(
+                onSuccess = { users ->
+                    HomeUiState.Success(
+                        users = users,
+                        isRefreshing = false,
+                        currentPage = 1,
+                        endReached = users.isEmpty()
+                    )
+                },
+                onFailure = { _ ->
+                    currentState.copy(isRefreshing = false)
+                }
+            )
         }
     }
 
-    private suspend fun handleUserFetch(fetcher: suspend () -> Result<List<User>>) {
-        val result = fetcher()
-        val currentState = _uiState.value
+    private suspend fun handleUserFetch(page: Int) {
+        val result = userRepository.fetchTopUsers(page)
+        val currentState = uiState.value
 
         _uiState.value = result.fold(
-            onSuccess = { users ->
-                if (users.isEmpty()) HomeUiState.Empty
-                else HomeUiState.Success(users, isRefreshing = false)
+            onSuccess = { newUsers ->
+                if (page == 1) {
+                    if (newUsers.isEmpty()) HomeUiState.Empty
+                    else HomeUiState.Success(newUsers, currentPage = 1)
+                } else {
+                    val currentSuccess = currentState as? HomeUiState.Success
+                    if (currentSuccess != null) {
+                        val mergedUsers = (currentSuccess.users + newUsers).distinctBy { it.id }
+                        currentSuccess.copy(
+                            users = mergedUsers,
+                            isLoadingMore = false,
+                            currentPage = page,
+                            endReached = newUsers.isEmpty()
+                        )
+                    } else {
+                        HomeUiState.Success(newUsers, currentPage = page)
+                    }
+                }
             },
             onFailure = { error ->
-                if (currentState is HomeUiState.Success) {
-                    currentState.copy(isRefreshing = false)
-                } else {
-                    HomeUiState.Error(error.message ?: "Unknown Error")
+                when (currentState) {
+                    is HomeUiState.Success -> currentState.copy(
+                        isLoadingMore = false,
+                        isRefreshing = false
+                    )
+                    else -> HomeUiState.Error(error.message ?: "Unknown Error")
                 }
             }
         )
