@@ -23,6 +23,8 @@ class JsonUsersResponseParserTest {
                   "location": "Reading, United Kingdom",
                   "website_url": "https://csharpindepth.com",
                   "about_me": "I am a <b>developer</b>",
+                  "creation_date": 1222430705,
+                  "last_modified_date": 1715694300,
                   "badge_counts": {
                     "bronze": 9255,
                     "silver": 9202,
@@ -44,6 +46,8 @@ class JsonUsersResponseParserTest {
         assertEquals("Reading, United Kingdom", user.location)
         assertEquals("https://csharpindepth.com", user.websiteUrl)
         assertEquals("I am a <b>developer</b>", user.aboutMe)
+        assertEquals(1222430705L, user.creationDate)
+        assertEquals(1715694300L, user.lastModifiedDate)
         assertNotNull(user.badgeCounts)
         assertEquals(877, user.badgeCounts?.gold)
         assertEquals(9202, user.badgeCounts?.silver)
@@ -168,7 +172,9 @@ class JsonUsersResponseParserTest {
                   "reputation": 100,
                   "profile_image": null,
                   "location": "",
-                  "website_url": "   "
+                  "website_url": "   ",
+                  "creation_date": null,
+                  "last_modified_date": null
                 }
               ]
             }
@@ -180,6 +186,8 @@ class JsonUsersResponseParserTest {
         assertNull(user.profileImageUrl)
         assertNull(user.location)
         assertNull(user.websiteUrl)
+        assertNull(user.creationDate)
+        assertNull(user.lastModifiedDate)
     }
 
     @Test

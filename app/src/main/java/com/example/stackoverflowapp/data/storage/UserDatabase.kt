@@ -14,7 +14,7 @@ open class UserDatabase(context: Context?) :
 
     companion object {
         private const val DATABASE_NAME = "users.db"
-        private const val DATABASE_VERSION = 3
+        private const val DATABASE_VERSION = 4
 
         private const val TABLE_USERS = "users"
         private const val COLUMN_ID = "id"
@@ -27,6 +27,8 @@ open class UserDatabase(context: Context?) :
         private const val COLUMN_SILVER_BADGES = "silver_badges"
         private const val COLUMN_GOLD_BADGES = "gold_badges"
         private const val COLUMN_ABOUT_ME = "about_me"
+        private const val COLUMN_CREATION_DATE = "creation_date"
+        private const val COLUMN_MODIFIED_DATE = "modified_date"
 
         private const val CREATE_USERS_TABLE = """
             CREATE TABLE $TABLE_USERS (
@@ -39,7 +41,9 @@ open class UserDatabase(context: Context?) :
                 $COLUMN_BRONZE_BADGES INTEGER DEFAULT 0,
                 $COLUMN_SILVER_BADGES INTEGER DEFAULT 0,
                 $COLUMN_GOLD_BADGES INTEGER DEFAULT 0,
-                $COLUMN_ABOUT_ME TEXT
+                $COLUMN_ABOUT_ME TEXT,
+                $COLUMN_CREATION_DATE INTEGER,
+                $COLUMN_MODIFIED_DATE INTEGER
             )
         """
     }
@@ -56,6 +60,10 @@ open class UserDatabase(context: Context?) :
         }
         if (oldVersion < 3) {
             db.execSQL("ALTER TABLE $TABLE_USERS ADD COLUMN $COLUMN_ABOUT_ME TEXT")
+        }
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE $TABLE_USERS ADD COLUMN $COLUMN_CREATION_DATE INTEGER")
+            db.execSQL("ALTER TABLE $TABLE_USERS ADD COLUMN $COLUMN_MODIFIED_DATE INTEGER")
         }
     }
 
@@ -74,6 +82,8 @@ open class UserDatabase(context: Context?) :
                     put(COLUMN_SILVER_BADGES, user.badgeCounts?.silver ?: 0)
                     put(COLUMN_GOLD_BADGES, user.badgeCounts?.gold ?: 0)
                     put(COLUMN_ABOUT_ME, user.aboutMe)
+                    put(COLUMN_CREATION_DATE, user.creationDate)
+                    put(COLUMN_MODIFIED_DATE, user.lastModifiedDate)
                 }
                 insertWithOnConflict(TABLE_USERS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
             }
@@ -90,7 +100,7 @@ open class UserDatabase(context: Context?) :
             null,
             null,
             null,
-            "$COLUMN_REPUTATION DESC"
+            null
         )
 
         cursor.use {
@@ -142,7 +152,9 @@ open class UserDatabase(context: Context?) :
                 silver = getInt(getColumnIndexOrThrow(COLUMN_SILVER_BADGES)),
                 gold = getInt(getColumnIndexOrThrow(COLUMN_GOLD_BADGES))
             ),
-            aboutMe = getString(getColumnIndexOrThrow(COLUMN_ABOUT_ME))
+            aboutMe = getString(getColumnIndexOrThrow(COLUMN_ABOUT_ME)),
+            creationDate = if (isNull(getColumnIndexOrThrow(COLUMN_CREATION_DATE))) null else getLong(getColumnIndexOrThrow(COLUMN_CREATION_DATE)),
+            lastModifiedDate = if (isNull(getColumnIndexOrThrow(COLUMN_MODIFIED_DATE))) null else getLong(getColumnIndexOrThrow(COLUMN_MODIFIED_DATE))
         )
     }
 }

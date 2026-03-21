@@ -8,5 +8,7 @@ data class UserDto(
     val badgeCounts: BadgeCountsDto? = null,
     val location: String? = null,
     val websiteUrl: String? = null,
-    val aboutMe: String? = null
+    val aboutMe: String? = null,
+    val creationDate: Long? = null,
+    val lastModifiedDate: Long? = null
 )

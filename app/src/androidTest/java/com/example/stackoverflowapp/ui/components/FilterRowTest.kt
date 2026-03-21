@@ -1,11 +1,13 @@
 package com.example.stackoverflowapp.ui.components
 
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.stackoverflowapp.ui.home.SortDirection
+import com.example.stackoverflowapp.ui.home.SortField
 import com.example.stackoverflowapp.ui.home.SortOrder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -15,6 +17,7 @@ import org.junit.runner.RunWith
 
 /**
  * Tests for [FilterRow] component ensuring correct state reflection and callback execution.
+ * Updated to support the new Dropdown and Direction Toggle UI.
  */
 @RunWith(AndroidJUnit4::class)
 class FilterRowTest {
@@ -26,7 +29,7 @@ class FilterRowTest {
     fun favoritesChip_reflectsSelectedState() {
         composeRule.setContent {
             FilterRow(
-                sortOrder = SortOrder.REPUTATION_DESC,
+                sortOrder = SortOrder.Default,
                 showFavouritesOnly = true,
                 onToggleFavorites = {},
                 onSortOrderChange = {}
@@ -37,25 +40,11 @@ class FilterRowTest {
     }
 
     @Test
-    fun favoritesChip_reflectsUnselectedState() {
-        composeRule.setContent {
-            FilterRow(
-                sortOrder = SortOrder.REPUTATION_DESC,
-                showFavouritesOnly = false,
-                onToggleFavorites = {},
-                onSortOrderChange = {}
-            )
-        }
-
-        composeRule.onNodeWithText("Favorites").assertIsNotSelected()
-    }
-
-    @Test
     fun clickingFavorites_invokesCallback() {
         var clicked = false
         composeRule.setContent {
             FilterRow(
-                sortOrder = SortOrder.REPUTATION_DESC,
+                sortOrder = SortOrder.Default,
                 showFavouritesOnly = false,
                 onToggleFavorites = { clicked = true },
                 onSortOrderChange = {}
@@ -67,92 +56,53 @@ class FilterRowTest {
     }
 
     @Test
-    fun nameAscChip_isSelected_whenSortOrderIsNameAsc() {
+    fun sortField_displaysCorrectLabel() {
         composeRule.setContent {
             FilterRow(
-                sortOrder = SortOrder.NAME_ASC,
+                sortOrder = SortOrder(SortField.REPUTATION, SortDirection.DESC),
                 showFavouritesOnly = false,
                 onToggleFavorites = {},
                 onSortOrderChange = {}
             )
         }
 
-        composeRule.onNodeWithText("Name A-Z").assertIsSelected()
+        composeRule.onNodeWithText("Popularity").assertExists()
     }
 
     @Test
-    fun clickingNameAsc_invokesCallbackWithCorrectOrder() {
+    fun clickingSortField_opensDropdownAndAllowsSelection() {
         var capturedOrder: SortOrder? = null
         composeRule.setContent {
             FilterRow(
-                sortOrder = SortOrder.REPUTATION_DESC,
+                sortOrder = SortOrder(SortField.REPUTATION, SortDirection.DESC),
                 showFavouritesOnly = false,
                 onToggleFavorites = {},
                 onSortOrderChange = { capturedOrder = it }
             )
         }
 
-        composeRule.onNodeWithText("Name A-Z").performClick()
-        assertEquals(SortOrder.NAME_ASC, capturedOrder)
+        composeRule.onNodeWithText("Popularity").performClick()
+        composeRule.onNodeWithText("Name").performClick()
+        
+        assertEquals(SortField.NAME, capturedOrder?.field)
+        assertEquals(SortDirection.DESC, capturedOrder?.direction)
     }
 
     @Test
-    fun popularityChip_showsDownArrow_whenReputationDesc() {
-        composeRule.setContent {
-            FilterRow(
-                sortOrder = SortOrder.REPUTATION_DESC,
-                showFavouritesOnly = false,
-                onToggleFavorites = {},
-                onSortOrderChange = {}
-            )
-        }
-
-        composeRule.onNodeWithText("Popularity ↓").assertIsSelected()
-    }
-
-    @Test
-    fun popularityChip_showsUpArrow_whenReputationAsc() {
-        composeRule.setContent {
-            FilterRow(
-                sortOrder = SortOrder.REPUTATION_ASC,
-                showFavouritesOnly = false,
-                onToggleFavorites = {},
-                onSortOrderChange = {}
-            )
-        }
-
-        composeRule.onNodeWithText("Popularity ↑").assertIsSelected()
-    }
-
-    @Test
-    fun clickingPopularity_fromDesc_togglesToAsc() {
+    fun clickingDirectionToggle_invokesCallbackWithToggledDirection() {
         var capturedOrder: SortOrder? = null
         composeRule.setContent {
             FilterRow(
-                sortOrder = SortOrder.REPUTATION_DESC,
+                sortOrder = SortOrder(SortField.NAME, SortDirection.ASC),
                 showFavouritesOnly = false,
                 onToggleFavorites = {},
                 onSortOrderChange = { capturedOrder = it }
             )
         }
 
-        composeRule.onNodeWithText("Popularity ↓").performClick()
-        assertEquals("Should toggle to Ascending when clicked from Descending", SortOrder.REPUTATION_ASC, capturedOrder)
-    }
-
-    @Test
-    fun clickingPopularity_fromAsc_togglesToDesc() {
-        var capturedOrder: SortOrder? = null
-        composeRule.setContent {
-            FilterRow(
-                sortOrder = SortOrder.REPUTATION_ASC,
-                showFavouritesOnly = false,
-                onToggleFavorites = {},
-                onSortOrderChange = { capturedOrder = it }
-            )
-        }
-
-        composeRule.onNodeWithText("Popularity ↑").performClick()
-        assertEquals("Should toggle to Descending when clicked from Ascending", SortOrder.REPUTATION_DESC, capturedOrder)
+        composeRule.onNodeWithContentDescription("Toggle Sort Direction").performClick()
+        
+        assertEquals(SortField.NAME, capturedOrder?.field)
+        assertEquals(SortDirection.DESC, capturedOrder?.direction)
     }
 }

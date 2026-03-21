@@ -8,5 +8,7 @@ data class User(
     val badgeCounts: BadgeCounts?,
     val location: String?,
     val websiteUrl: String?,
-    val aboutMe: String? = null
+    val aboutMe: String? = null,
+    val creationDate: Long? = null,
+    val lastModifiedDate: Long? = null
 )

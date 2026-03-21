@@ -41,7 +41,11 @@ The project is organized into the following layers:
 - **Top Users Grid**: Fetches and displays Stack Overflow users in a stylized two-column polaroid grid.
 - **User Details Page**: Tapping a user opens a dedicated details screen with richer profile information including badges, reputation, location, website, and bio.
 - **Shared Element Transitions**: Smooth shared transitions animate the selected user card and image from the grid into the details screen.
-- **Search, Sort, and Favourites Filtering**: Supports real-time user filtering and sorting, with an optional favourites-only view.
+- **Search, Sort, and Favourites Filtering**: Supports real-time user filtering and sorting.
+    - **Search**: Filter by display name.
+    - **Sort**: Choose between **Name**, **Popularity**, **Creation**, or **Modified** date.
+    - **Direction**: Toggle between **Ascending** and **Descending** order.
+    - **Favourites**: Filter the list to show only followed users.
 - **Pagination**: Fetches additional users from the Stack Overflow API as the user scrolls, with a loading indicator and end-of-list detection.
 - **Persistent Following System**: Followed users are stored locally and remain persisted independently of API refreshes.
 - **Manual Image Loading & Memory Caching**: Profile images are fetched, decoded, cached, and displayed without third-party image libraries.
@@ -89,8 +93,8 @@ The home screen is responsible for:
 - Loading top Stack Overflow users
 - Displaying them in a stylized polaroid grid
 - Searching by display name
-- Sorting by name or reputation
-- Filtering to followed users only
+- Sorting by **Name**, **Popularity**, **Creation**, or **Modified** date with **Ascending/Descending** support
+- Filtering to followed users (favorites) only
 - Navigating to the details page
 
 ### Details Screen
