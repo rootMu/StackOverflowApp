@@ -21,12 +21,7 @@ object HomeDestination : Destination {
         navGraphBuilder.composable(
             route = route,
         ) {
-            val viewModel: HomeViewModel = createViewModel {
-                HomeViewModel(
-                    userRepository = it.userRepository,
-                    followedUsersRepository = it.followedUsersRepository
-                )
-            }
+            val viewModel: HomeViewModel = createViewModel { it.createHomeViewModel() }
 
             HomeRoute(
                 viewModel = viewModel,

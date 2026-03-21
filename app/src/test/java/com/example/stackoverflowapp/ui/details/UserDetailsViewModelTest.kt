@@ -1,11 +1,16 @@
 package com.example.stackoverflowapp.ui.details
 
 import com.example.stackoverflowapp.MainDispatcherRule
+import com.example.stackoverflowapp.domain.ErrorBus
+import com.example.stackoverflowapp.domain.model.AppError
+import com.example.stackoverflowapp.domain.model.AppErrorException
 import com.example.stackoverflowapp.domain.model.createTestUser
 import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
 import com.example.stackoverflowapp.fakes.FakeUserRepository
 import com.example.stackoverflowapp.fakes.FakeUserStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -20,6 +25,8 @@ class UserDetailsViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule(StandardTestDispatcher())
 
+    private val errorBus = ErrorBus()
+
     @Test
     fun `init state transitions correctly to success`() = runTest {
         val user = createTestUser(id = 123, name = "Test User")
@@ -27,7 +34,8 @@ class UserDetailsViewModelTest {
         val viewModel = UserDetailsViewModel(
             userId = 123,
             userRepository = repo,
-            followedUsersRepository = FakeFollowUserRepository(FakeUserStore())
+            followedUsersRepository = FakeFollowUserRepository(FakeUserStore()),
+            errorBus = errorBus
         )
 
         assertEquals(UserDetailsUiState.Loading, viewModel.uiState.value)
@@ -40,20 +48,27 @@ class UserDetailsViewModelTest {
     }
 
     @Test
-    fun `init state transitions correctly to error`() = runTest {
-        val repo = FakeUserRepository(Result.failure(Exception("Specific Error Message")))
+    fun `init reports error to ErrorBus on failure`() = runTest {
+        val expectedError = AppError.Network.ServerError
+        val repo = FakeUserRepository(Result.failure(AppErrorException(expectedError)))
 
         val viewModel = UserDetailsViewModel(
             userId = 123,
             userRepository = repo,
-            followedUsersRepository = FakeFollowUserRepository(FakeUserStore())
+            followedUsersRepository = FakeFollowUserRepository(FakeUserStore()),
+            errorBus = errorBus
         )
 
-        advanceUntilIdle()
+        val busErrorJob = backgroundScope.launch {
+            val error = errorBus.errors.first()
+            assertEquals(expectedError, error)
+        }
 
+        advanceUntilIdle()
+        
         val state = viewModel.uiState.value
         assertTrue(state is UserDetailsUiState.Error)
-        assertEquals("Specific Error Message", (state as UserDetailsUiState.Error).message)
+        busErrorJob.cancel()
     }
 
     @Test
@@ -62,7 +77,8 @@ class UserDetailsViewModelTest {
         val viewModel = UserDetailsViewModel(
             userId = 123,
             userRepository = repo,
-            followedUsersRepository = FakeFollowUserRepository(FakeUserStore())
+            followedUsersRepository = FakeFollowUserRepository(FakeUserStore()),
+            errorBus = errorBus
         )
         advanceUntilIdle()
         assertTrue(viewModel.uiState.value is UserDetailsUiState.Error)
@@ -85,7 +101,8 @@ class UserDetailsViewModelTest {
         val viewModel = UserDetailsViewModel(
             userId = 123,
             userRepository = FakeUserRepository(Result.success(listOf(user))),
-            followedUsersRepository = followedRepo
+            followedUsersRepository = followedRepo,
+            errorBus = errorBus
         )
 
         advanceUntilIdle()
@@ -106,7 +123,8 @@ class UserDetailsViewModelTest {
         val viewModel = UserDetailsViewModel(
             userId = 123,
             userRepository = FakeUserRepository(Result.success(listOf(user))),
-            followedUsersRepository = FakeFollowUserRepository(store)
+            followedUsersRepository = FakeFollowUserRepository(store),
+            errorBus = errorBus
         )
 
         advanceUntilIdle()

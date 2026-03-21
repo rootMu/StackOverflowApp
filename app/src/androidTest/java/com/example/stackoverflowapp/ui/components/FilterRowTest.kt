@@ -91,16 +91,17 @@ class FilterRowTest {
     @Test
     fun clickingDirectionToggle_invokesCallbackWithToggledDirection() {
         var capturedOrder: SortOrder? = null
+        val initialDirection = SortDirection.ASC
         composeRule.setContent {
             FilterRow(
-                sortOrder = SortOrder(SortField.NAME, SortDirection.ASC),
+                sortOrder = SortOrder(SortField.NAME, initialDirection),
                 showFavouritesOnly = false,
                 onToggleFavorites = {},
                 onSortOrderChange = { capturedOrder = it }
             )
         }
 
-        composeRule.onNodeWithContentDescription("Toggle Sort Direction").performClick()
+        composeRule.onNodeWithContentDescription(initialDirection.contentDescription).performClick()
         
         assertEquals(SortField.NAME, capturedOrder?.field)
         assertEquals(SortDirection.DESC, capturedOrder?.direction)

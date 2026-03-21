@@ -1,6 +1,5 @@
 package com.example.stackoverflowapp.ui.main
 
-import android.graphics.Bitmap
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
@@ -11,12 +10,11 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.stackoverflowapp.data.image.ImageLoader
-import com.example.stackoverflowapp.di.AppContainer
 import com.example.stackoverflowapp.di.LocalAppContainer
 import com.example.stackoverflowapp.domain.model.createTestUser
 import com.example.stackoverflowapp.ui.details.UserDetailsDestination
 import com.example.stackoverflowapp.ui.home.HomeDestination
+import com.example.stackoverflowapp.fakes.FakeAppContainer
 import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
 import com.example.stackoverflowapp.fakes.FakeUserRepository
 import com.example.stackoverflowapp.fakes.FakeUserStore
@@ -40,17 +38,10 @@ class MainNavigationHostTest {
     
     private val fakeFollowRepo = FakeFollowUserRepository(FakeUserStore())
 
-    private val fakeImageLoader = object : ImageLoader {
-        override suspend fun loadBitmap(url: String): Bitmap? = null
-        override fun getCachedBitmap(url: String): Bitmap? = null
-    }
-
-    private val fakeContainer = object : AppContainer {
-        override val userRepository = fakeUserRepo
-        override val followedUsersRepository = fakeFollowRepo
-        override val imageLoader = fakeImageLoader
-        override val userDatabase get() = error("not used")
-    }
+    private val fakeContainer = FakeAppContainer(
+        userRepository = fakeUserRepo,
+        followedUsersRepository = fakeFollowRepo
+    )
 
     @Test
     fun mainNavigationHost_startDestination_isHome() {

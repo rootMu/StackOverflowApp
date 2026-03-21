@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.stackoverflowapp.data.image.ImageLoader
+import com.example.stackoverflowapp.domain.ErrorBus
 import com.example.stackoverflowapp.domain.model.SharedTransitionTestContext
 import com.example.stackoverflowapp.domain.model.createTestUser
 import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
@@ -39,9 +40,11 @@ class HomeRouteTest {
         override fun getCachedBitmap(url: String): Bitmap? = null
     }
 
+    private val errorBus = ErrorBus()
+
     @Test
     fun homeRoute_showsUsersFromViewModel() {
-        val viewModel = HomeViewModel(fakeUserRepo, fakeFollowRepo)
+        val viewModel = HomeViewModel(fakeUserRepo, fakeFollowRepo, errorBus)
 
         composeRule.setContent {
             SharedTransitionTestContext { animatedScope ->
@@ -61,7 +64,7 @@ class HomeRouteTest {
 
     @Test
     fun homeRoute_filteringUpdatesList() {
-        val viewModel = HomeViewModel(fakeUserRepo, fakeFollowRepo)
+        val viewModel = HomeViewModel(fakeUserRepo, fakeFollowRepo, errorBus)
 
         composeRule.setContent {
             SharedTransitionTestContext { animatedScope ->
@@ -84,7 +87,7 @@ class HomeRouteTest {
     @Test
     fun homeRoute_clickingUser_invokesOnUserClick() {
         var clickedUserId: Int? = null
-        val viewModel = HomeViewModel(fakeUserRepo, fakeFollowRepo)
+        val viewModel = HomeViewModel(fakeUserRepo, fakeFollowRepo, errorBus)
 
         composeRule.setContent {
             SharedTransitionTestContext { animatedScope ->
@@ -104,7 +107,7 @@ class HomeRouteTest {
 
     @Test
     fun homeRoute_clickingFollow_updatesState() {
-        val viewModel = HomeViewModel(fakeUserRepo, fakeFollowRepo)
+        val viewModel = HomeViewModel(fakeUserRepo, fakeFollowRepo, errorBus)
 
         composeRule.setContent {
             SharedTransitionTestContext { animatedScope ->

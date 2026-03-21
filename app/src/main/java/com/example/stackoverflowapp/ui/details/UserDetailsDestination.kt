@@ -35,17 +35,11 @@ object UserDetailsDestination : Destination {
                 }
             )
         ) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getInt("userId") ?: error("User Id is required")
+            val userId = backStackEntry.arguments?.getInt(ARG_USER_ID) ?: error("User Id is required")
 
             val viewModel: UserDetailsViewModel = createViewModel(
                 key = "details_$userId"
-            ) {
-                UserDetailsViewModel(
-                    userId = userId,
-                    userRepository = it.userRepository,
-                    followedUsersRepository = it.followedUsersRepository
-                )
-            }
+            ) { it.createUserDetailsViewModel(userId) }
 
             CompositionLocalProvider(
                 LocalAnimatedVisibilityScope provides this

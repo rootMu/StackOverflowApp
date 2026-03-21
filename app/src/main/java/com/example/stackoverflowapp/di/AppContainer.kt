@@ -16,30 +16,38 @@ import com.example.stackoverflowapp.data.repo.UserRepositoryImpl
 import com.example.stackoverflowapp.data.storage.SharedPrefsUserStore
 import com.example.stackoverflowapp.data.storage.UserDatabase
 import com.example.stackoverflowapp.data.storage.UserStore
+import com.example.stackoverflowapp.domain.ErrorBus
+import com.example.stackoverflowapp.domain.GlobalExceptionHandler
+import com.example.stackoverflowapp.ui.details.UserDetailsViewModel
+import com.example.stackoverflowapp.ui.home.HomeViewModel
 
 /**
  * Central application-level dependency container.
  *
- * Creates and connects the main objects used by the app.
- * Keeps setup code in one place so shared dependencies are easy to manage.
- *
- * Dependency groups typically include:
- * - Networking: HTTP client and network configuration
- * - API: service interfaces / endpoint definitions
- * - Parser: serialization / deserialization components
- * - Repository: data access layer combining remote/local sources
- * - Persistence: local storage (database, preferences, caches)
- *
+ * This container acts as the "Composition Root" for manual dependency injection.
+ * It manages the lifecycle of singletons and provides factory methods for ViewModels.
  */
-
 interface AppContainer {
     val userRepository: UserRepository
     val followedUsersRepository: FollowedUsersRepository
     val imageLoader: ImageLoader
     val userDatabase: UserDatabase
+    val errorBus: ErrorBus
+
+    /** Creates a fresh instance of [HomeViewModel] with all required dependencies. */
+    fun createHomeViewModel(): HomeViewModel
+
+    /** Creates a [UserDetailsViewModel] for a specific user. */
+    fun createUserDetailsViewModel(userId: Int): UserDetailsViewModel
 }
 
 class DefaultAppContainer(private val context: Context): AppContainer {
+
+    override val errorBus: ErrorBus by lazy {
+        ErrorBus().also {
+            GlobalExceptionHandler.install(it)
+        }
+    }
 
     private val httpClient: HttpClient by lazy {
         HttpUrlConnectionClient()
@@ -73,4 +81,20 @@ class DefaultAppContainer(private val context: Context): AppContainer {
         UserDatabase(context)
     }
 
+    override fun createHomeViewModel(): HomeViewModel {
+        return HomeViewModel(
+            userRepository = userRepository,
+            followedUsersRepository = followedUsersRepository,
+            errorBus = errorBus
+        )
+    }
+
+    override fun createUserDetailsViewModel(userId: Int): UserDetailsViewModel {
+        return UserDetailsViewModel(
+            userId = userId,
+            userRepository = userRepository,
+            followedUsersRepository = followedUsersRepository,
+            errorBus = errorBus
+        )
+    }
 }

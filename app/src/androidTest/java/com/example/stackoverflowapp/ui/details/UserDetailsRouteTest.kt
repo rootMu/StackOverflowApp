@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.stackoverflowapp.data.image.ImageLoader
+import com.example.stackoverflowapp.domain.ErrorBus
 import com.example.stackoverflowapp.domain.model.User
 import com.example.stackoverflowapp.domain.model.createTestUser
 import com.example.stackoverflowapp.fakes.FakeFollowUserRepository
@@ -35,11 +36,13 @@ class UserDetailsRouteTest {
         override fun getCachedBitmap(url: String): Bitmap? = null
     }
 
+    private val errorBus = ErrorBus()
+
     @Test
     fun userDetailsRoute_showsLoadingState() {
         fakeUserRepo.shouldHoldLoading = true
 
-        val viewModel = UserDetailsViewModel(1, fakeUserRepo, fakeFollowRepo)
+        val viewModel = UserDetailsViewModel(1, fakeUserRepo, fakeFollowRepo, errorBus)
 
         composeRule.setContent {
             UserDetailsRoute(
@@ -57,7 +60,7 @@ class UserDetailsRouteTest {
         val user = createTestUser(id = 1, name = "Jon Skeet")
         fakeUserRepo.userDetailsResult = Result.success(user)
 
-        val viewModel = UserDetailsViewModel(1, fakeUserRepo, fakeFollowRepo)
+        val viewModel = UserDetailsViewModel(1, fakeUserRepo, fakeFollowRepo, errorBus)
 
         composeRule.setContent {
             SharedTransitionLayout {
@@ -79,7 +82,7 @@ class UserDetailsRouteTest {
     @Test
     fun clickingBack_invokesOnBackCallback() {
         var backInvoked = false
-        val viewModel = UserDetailsViewModel(1, fakeUserRepo, fakeFollowRepo)
+        val viewModel = UserDetailsViewModel(1, fakeUserRepo, fakeFollowRepo, errorBus)
 
         composeRule.setContent {
             UserDetailsRoute(
@@ -98,7 +101,7 @@ class UserDetailsRouteTest {
         var backInvoked = false
         fakeUserRepo.userDetailsResult = Result.failure<User>(Exception("Failed to load"))
 
-        val viewModel = UserDetailsViewModel(1, fakeUserRepo, fakeFollowRepo)
+        val viewModel = UserDetailsViewModel(1, fakeUserRepo, fakeFollowRepo, errorBus)
 
         composeRule.setContent {
             UserDetailsRoute(

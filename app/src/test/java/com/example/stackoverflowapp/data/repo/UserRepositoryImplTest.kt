@@ -6,6 +6,8 @@ import com.example.stackoverflowapp.data.api.FakeStackOverflowUsersApi
 import com.example.stackoverflowapp.data.api.UserDto
 import com.example.stackoverflowapp.data.api.UsersResponseDto
 import com.example.stackoverflowapp.data.storage.FakeUserDatabase
+import com.example.stackoverflowapp.domain.model.AppError
+import com.example.stackoverflowapp.domain.model.AppErrorException
 import com.example.stackoverflowapp.domain.model.User
 import com.example.stackoverflowapp.domain.model.createTestUser
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -86,22 +88,24 @@ class UserRepositoryImplTest {
     }
 
     @Test
-    fun `error branches return correct failure messages`() = runTest {
+    fun `error branches return correct AppError types`() = runTest {
         val errorCases = listOf(
-            ApiResult.Error.Http(404, "Not Found") to "HTTP 404: Not Found",
-            ApiResult.Error.Http(500, null) to "HTTP 500: Request failed",
-            ApiResult.Error.EmptyBody to "Empty response body",
-            ApiResult.Error.Network("No Internet") to "No Internet",
-            ApiResult.Error.Parse("Malformed JSON") to "Malformed JSON"
+            ApiResult.Error.Http(401, "Unauthorized") to AppError.Network.Unauthorized,
+            ApiResult.Error.Http(500, null) to AppError.Network.ServerError,
+            ApiResult.Error.EmptyBody to AppError.Data.NotFound,
+            ApiResult.Error.Network("No Internet") to AppError.Network.NoConnection,
+            ApiResult.Error.Parse("Malformed JSON") to AppError.Data.MalformedResponse
         )
 
-        errorCases.forEach { (apiError, expectedMessage) ->
+        errorCases.forEach { (apiError, expectedAppError) ->
             setupRepository(apiError)
 
             val result = repository.fetchTopUsers()
 
             Assert.assertTrue("Expected failure for $apiError", result.isFailure)
-            Assert.assertEquals(expectedMessage, result.exceptionOrNull()?.message)
+            val exception = result.exceptionOrNull()
+            Assert.assertTrue("Expected AppErrorException but got $exception", exception is AppErrorException)
+            Assert.assertEquals(expectedAppError, (exception as AppErrorException).error)
         }
     }
 
@@ -166,7 +170,8 @@ class UserRepositoryImplTest {
         val result = repository.fetchUserDetails(999)
 
         Assert.assertTrue(result.isFailure)
-        Assert.assertEquals("No Internet", result.exceptionOrNull()?.message)
+        val exception = result.exceptionOrNull() as AppErrorException
+        Assert.assertEquals(AppError.Network.NoConnection, exception.error)
     }
 
     @Test
@@ -176,7 +181,8 @@ class UserRepositoryImplTest {
         val result = repository.fetchUserDetails(123)
 
         Assert.assertTrue(result.isFailure)
-        Assert.assertEquals("User not found", result.exceptionOrNull()?.message)
+        val exception = result.exceptionOrNull() as AppErrorException
+        Assert.assertEquals(AppError.Data.NotFound, exception.error)
     }
 
     @Test
