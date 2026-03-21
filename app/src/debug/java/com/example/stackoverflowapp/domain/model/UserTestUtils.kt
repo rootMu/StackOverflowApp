@@ -9,6 +9,9 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import com.example.stackoverflowapp.ui.transitions.LocalAnimatedVisibilityScope
+import com.example.stackoverflowapp.ui.transitions.LocalSharedTransitionScope
 
 /**
  * Helper function to create a [User] for testing purposes.
@@ -22,7 +25,9 @@ fun createTestUser(
     location: String? = "London",
     website: String? = "https://example.com",
     badgeCounts: BadgeCounts? = BadgeCounts(1, 2, 3),
-    aboutMe: String? = null
+    aboutMe: String? = null,
+    creationDate: Long? = null,
+    lastModifiedDate: Long? = null
 ) = User(
     id = id,
     displayName = name,
@@ -31,7 +36,9 @@ fun createTestUser(
     location = location,
     websiteUrl = website,
     badgeCounts = badgeCounts,
-    aboutMe = aboutMe
+    aboutMe = aboutMe,
+    creationDate = creationDate,
+    lastModifiedDate = lastModifiedDate
 )
 
 /**
@@ -48,8 +55,15 @@ fun SharedTransitionTestContext(
             targetState = true,
             label = "test",
             transitionSpec = { EnterTransition.None togetherWith ExitTransition.None }
-        ) { _ ->
-            content(this@SharedTransitionLayout, this@AnimatedContent)
+        ) { targetState ->
+            if (targetState) {
+                CompositionLocalProvider(
+                    LocalSharedTransitionScope provides this@SharedTransitionLayout,
+                    LocalAnimatedVisibilityScope provides this@AnimatedContent
+                ) {
+                    content(this@SharedTransitionLayout, this@AnimatedContent)
+                }
+            }
         }
     }
 }

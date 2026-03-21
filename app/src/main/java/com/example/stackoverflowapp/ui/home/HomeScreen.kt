@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.example.stackoverflowapp.data.image.ImageLoader
-import com.example.stackoverflowapp.domain.model.User
 import com.example.stackoverflowapp.ui.components.EmptyStateView
 import com.example.stackoverflowapp.ui.components.ErrorStateView
 import com.example.stackoverflowapp.ui.components.LoadingScreen
@@ -15,61 +15,54 @@ import com.example.stackoverflowapp.ui.components.UsersPolaroidGridView
 
 @Composable
 fun HomeScreen(
+    state: HomeScreenState,
     gridState: LazyGridState,
-    uiState: HomeUiState,
-    users: List<User>,
-    followedUsers: Set<Int>,
-    searchQuery: String,
-    showFavouritesOnly: Boolean,
     imageLoader: ImageLoader,
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
     onRetry: () -> Unit,
     onUserClick: (Int) -> Unit,
     onFollowClick: (Int) -> Unit,
-    contentPadding: PaddingValues,
-    modifier: Modifier = Modifier
+    onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
-
-    when (uiState) {
-        HomeUiState.Loading -> LoadingScreen()
-
-        HomeUiState.Empty -> EmptyStateView(
-            title = "No users found \uD83D\uDD0D",
-            message = "No StackOverflow users were returned."
-        )
-
-        is HomeUiState.Error -> ErrorStateView(
-            title = "404 - Users Not Found \uD83D\uDD75\uFE0F\u200D♂\uFE0F",
+    when {
+        state.isLoading && !state.isRefreshing -> LoadingScreen()
+        state.error != null && state.users.isEmpty() -> ErrorStateView(
+            title = "Connection Error",
             message = "We couldn't connect to StackOverflow. Please check your connection and try again.",
-            technicalDetails = uiState.message,
+            technicalDetails = state.error,
             onRetry = onRetry
         )
-
-        is HomeUiState.Success -> if (users.isEmpty()) {
-
-            val title = if (showFavouritesOnly) "No favourites found" else "No users found"
-
-            val message =
-                if (searchQuery.isBlank()) "" else "We couldn't find any users matching '$searchQuery'."
-
+        state.users.isEmpty() -> {
+            val title = if (state.showFavouritesOnly) "No favorites found" else "No users found"
+            val message = if (state.searchQuery.isBlank()) 
+                "No StackOverflow users were returned." 
+            else 
+                "We couldn't find any users matching '${state.searchQuery}'."
+            
             EmptyStateView(
-                showFavouritesOnly = showFavouritesOnly,
+                showFavouritesOnly = state.showFavouritesOnly,
                 title = title,
                 message = message
             )
-        } else {
+        }
+        else -> {
             UsersPolaroidGridView(
                 gridState = gridState,
-                users = users,
-                followedUsers = followedUsers,
+                users = state.users.map { it.user },
+                followedUsers = state.users.filter { it.isFollowed }.map { it.user.id }.toSet(),
                 modifier = modifier,
                 onUserClick = onUserClick,
                 onFollowClick = onFollowClick,
                 imageLoader = imageLoader,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,
-                contentPadding = contentPadding
+                contentPadding = contentPadding,
+                isLoadingMore = state.isLoadingMore,
+                isEndReached = state.endReached,
+                onLoadMore = onLoadMore
             )
         }
     }

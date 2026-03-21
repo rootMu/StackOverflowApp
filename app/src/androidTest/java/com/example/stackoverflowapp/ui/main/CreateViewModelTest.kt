@@ -3,12 +3,9 @@ package com.example.stackoverflowapp.ui.main
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.lifecycle.ViewModel
-import com.example.stackoverflowapp.data.image.ImageLoader
-import com.example.stackoverflowapp.data.repo.FollowedUsersRepository
-import com.example.stackoverflowapp.data.repo.UserRepository
-import com.example.stackoverflowapp.data.storage.UserDatabase
 import com.example.stackoverflowapp.di.AppContainer
 import com.example.stackoverflowapp.di.LocalAppContainer
+import com.example.stackoverflowapp.fakes.FakeAppContainer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
@@ -23,12 +20,7 @@ class CreateViewModelTest {
     private class TestViewModel(val container: AppContainer) : ViewModel()
     private class OtherViewModel() : ViewModel()
 
-    private val fakeContainer = object : AppContainer {
-        override val userRepository: UserRepository get() = throw NotImplementedError()
-        override val followedUsersRepository: FollowedUsersRepository get() = throw NotImplementedError()
-        override val imageLoader: ImageLoader get() = throw NotImplementedError()
-        override val userDatabase: UserDatabase get() = throw NotImplementedError()
-    }
+    private val fakeContainer = FakeAppContainer()
 
     @Test
     fun createViewModel_usesAppContainerFromCompositionLocal() {

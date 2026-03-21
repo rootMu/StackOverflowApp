@@ -3,7 +3,8 @@ package com.example.stackoverflowapp.data.storage
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -16,23 +17,45 @@ class SharedPrefsUserStoreTest {
     @Before
     fun setup() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("user_store", Context.MODE_PRIVATE).edit().clear().commit()
         store = SharedPrefsUserStore(context)
     }
 
-    private fun assertStorePersistence(ids: Set<Int>) {
+    @Test
+    fun getFollowedUserIds_initiallyEmpty() {
+        assertTrue(store.getFollowedUserIds().isEmpty())
+    }
+
+    @Test
+    fun setFollowedUserIds_persistsMultipleIds() {
+        val ids = setOf(1, 2, 100)
         store.setFollowedUserIds(ids)
-        Assert.assertEquals(ids, store.getFollowedUserIds())
+        assertEquals(ids, store.getFollowedUserIds())
     }
 
     @Test
-    fun saveAndRetrieveMultipleIDs() {
-        assertStorePersistence(setOf(1, 2, 100))
+    fun setFollowedUserIds_overwritesPreviousData() {
+        store.setFollowedUserIds(setOf(1, 2))
+        val newIds = setOf(3, 4)
+        store.setFollowedUserIds(newIds)
+        assertEquals(newIds, store.getFollowedUserIds())
     }
 
     @Test
-    fun savingEmptySetClearsPreviousData() {
-        store.setFollowedUserIds(setOf(1))
-        assertStorePersistence(emptySet())
+    fun setFollowedUserIds_withEmptySet_clearsData() {
+        store.setFollowedUserIds(setOf(1, 2))
+        store.setFollowedUserIds(emptySet())
+        assertTrue(store.getFollowedUserIds().isEmpty())
+    }
+
+    @Test
+    fun getFollowedUserIds_handlesMalformedData() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val prefs = context.getSharedPreferences("user_store", Context.MODE_PRIVATE)
+        
+        prefs.edit().putStringSet("followed_ids", setOf("1", "abc", "2")).commit()
+        
+        val result = store.getFollowedUserIds()
+        assertEquals(setOf(1, 2), result)
     }
 }

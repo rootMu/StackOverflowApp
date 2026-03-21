@@ -6,6 +6,8 @@ import com.example.stackoverflowapp.data.api.FakeStackOverflowUsersApi
 import com.example.stackoverflowapp.data.api.UserDto
 import com.example.stackoverflowapp.data.api.UsersResponseDto
 import com.example.stackoverflowapp.data.storage.FakeUserDatabase
+import com.example.stackoverflowapp.domain.model.AppError
+import com.example.stackoverflowapp.domain.model.AppErrorException
 import com.example.stackoverflowapp.domain.model.User
 import com.example.stackoverflowapp.domain.model.createTestUser
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -56,14 +58,14 @@ class UserRepositoryImplTest {
     )
 
     @Test
-    fun `fetchTopUsers returns local data when available`() = runTest {
+    fun `fetchTopUsers returns local data when available on page 1`() = runTest {
         val user = createTestUser(1)
         val list = listOf(user)
         fakeDb.insertUsers(list)
 
         setupRepository(ApiResult.Success(list.toDto()))
 
-        val result = repository.fetchTopUsers()
+        val result = repository.fetchTopUsers(page = 1)
 
         Assert.assertTrue(result.isSuccess)
         Assert.assertEquals(user, result.getOrThrow().first())
@@ -71,22 +73,39 @@ class UserRepositoryImplTest {
     }
 
     @Test
-    fun `error branches return correct failure messages`() = runTest {
+    fun `fetchTopUsers page 2 always calls API even if local data exists`() = runTest {
+        val user = createTestUser(1)
+        fakeDb.insertUsers(listOf(user))
+
+        val apiUser = createTestUser(2)
+        setupRepository(ApiResult.Success(listOf(apiUser).toDto()))
+
+        val result = repository.fetchTopUsers(page = 2)
+
+        Assert.assertTrue(result.isSuccess)
+        Assert.assertEquals(apiUser, result.getOrThrow().first())
+        Assert.assertEquals(1, fakeApi.callCount)
+    }
+
+    @Test
+    fun `error branches return correct AppError types`() = runTest {
         val errorCases = listOf(
-            ApiResult.Error.Http(404, "Not Found") to "HTTP 404: Not Found",
-            ApiResult.Error.Http(500, null) to "HTTP 500: Request failed",
-            ApiResult.Error.EmptyBody to "Empty response body",
-            ApiResult.Error.Network("No Internet") to "No Internet",
-            ApiResult.Error.Parse("Malformed JSON") to "Malformed JSON"
+            ApiResult.Error.Http(401, "Unauthorized") to AppError.Network.Unauthorized,
+            ApiResult.Error.Http(500, null) to AppError.Network.ServerError,
+            ApiResult.Error.EmptyBody to AppError.Data.NotFound,
+            ApiResult.Error.Network("No Internet") to AppError.Network.NoConnection,
+            ApiResult.Error.Parse("Malformed JSON") to AppError.Data.MalformedResponse
         )
 
-        errorCases.forEach { (apiError, expectedMessage) ->
+        errorCases.forEach { (apiError, expectedAppError) ->
             setupRepository(apiError)
 
             val result = repository.fetchTopUsers()
 
             Assert.assertTrue("Expected failure for $apiError", result.isFailure)
-            Assert.assertEquals(expectedMessage, result.exceptionOrNull()?.message)
+            val exception = result.exceptionOrNull()
+            Assert.assertTrue("Expected AppErrorException but got $exception", exception is AppErrorException)
+            Assert.assertEquals(expectedAppError, (exception as AppErrorException).error)
         }
     }
 
@@ -151,6 +170,65 @@ class UserRepositoryImplTest {
         val result = repository.fetchUserDetails(999)
 
         Assert.assertTrue(result.isFailure)
-        Assert.assertEquals("No Internet", result.exceptionOrNull()?.message)
+        val exception = result.exceptionOrNull() as AppErrorException
+        Assert.assertEquals(AppError.Network.NoConnection, exception.error)
+    }
+
+    @Test
+    fun `fetchUserDetails returns failure when API succeeds but items list is empty`() = runTest {
+        setupRepository(ApiResult.Success(UsersResponseDto(emptyList())))
+
+        val result = repository.fetchUserDetails(123)
+
+        Assert.assertTrue(result.isFailure)
+        val exception = result.exceptionOrNull() as AppErrorException
+        Assert.assertEquals(AppError.Data.NotFound, exception.error)
+    }
+
+    @Test
+    fun `fetchUserDetails overwrites stale local user with richer API user`() = runTest {
+        val localUser = createTestUser(id = 123, aboutMe = null, location = "Old Location")
+        val apiUser = createTestUser(id = 123, aboutMe = "Rich Bio", location = "New Location")
+
+        fakeDb.insertUsers(listOf(localUser))
+        setupRepository(ApiResult.Success(UsersResponseDto(listOf(apiUser.toDto()))))
+
+        val result = repository.fetchUserDetails(123)
+
+        Assert.assertEquals(apiUser, result.getOrThrow())
+        val storedUser = fakeDb.getUserById(123)
+        Assert.assertEquals("Rich Bio", storedUser?.aboutMe)
+        Assert.assertEquals("New Location", storedUser?.location)
+    }
+
+    @Test
+    fun `fetchUserDetails prefers local complete user even if API would return different data`() =
+        runTest {
+            val localUser =
+                createTestUser(id = 123, aboutMe = "Existing Bio", location = "Location A")
+            val apiUser =
+                createTestUser(id = 123, aboutMe = "Different Bio", location = "Location B")
+
+            fakeDb.insertUsers(listOf(localUser))
+            setupRepository(ApiResult.Success(UsersResponseDto(listOf(apiUser.toDto()))))
+
+            val result = repository.fetchUserDetails(123)
+
+            Assert.assertEquals(localUser, result.getOrThrow())
+            Assert.assertEquals(0, fakeApi.callCount)
+        }
+
+    @Test
+    fun `fetchTopUsers returns API users in original order after caching`() = runTest {
+        val users = listOf(
+            createTestUser(id = 1, reputation = 100),
+            createTestUser(id = 2, reputation = 200),
+            createTestUser(id = 3, reputation = 150)
+        )
+        setupRepository(ApiResult.Success(users.toDto()))
+
+        val result = repository.fetchTopUsers()
+
+        Assert.assertEquals(users, result.getOrThrow())
     }
 }

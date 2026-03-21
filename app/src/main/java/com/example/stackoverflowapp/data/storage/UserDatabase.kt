@@ -5,16 +5,16 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import com.example.stackoverflowapp.domain.model.User
 import androidx.core.database.sqlite.transaction
 import com.example.stackoverflowapp.domain.model.BadgeCounts
+import com.example.stackoverflowapp.domain.model.User
 
 open class UserDatabase(context: Context?) :
-    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION), UserLocalDataSource {
 
     companion object {
         private const val DATABASE_NAME = "users.db"
-        private const val DATABASE_VERSION = 3
+        private const val DATABASE_VERSION = 4
 
         private const val TABLE_USERS = "users"
         private const val COLUMN_ID = "id"
@@ -27,6 +27,8 @@ open class UserDatabase(context: Context?) :
         private const val COLUMN_SILVER_BADGES = "silver_badges"
         private const val COLUMN_GOLD_BADGES = "gold_badges"
         private const val COLUMN_ABOUT_ME = "about_me"
+        private const val COLUMN_CREATION_DATE = "creation_date"
+        private const val COLUMN_MODIFIED_DATE = "modified_date"
 
         private const val CREATE_USERS_TABLE = """
             CREATE TABLE $TABLE_USERS (
@@ -39,7 +41,9 @@ open class UserDatabase(context: Context?) :
                 $COLUMN_BRONZE_BADGES INTEGER DEFAULT 0,
                 $COLUMN_SILVER_BADGES INTEGER DEFAULT 0,
                 $COLUMN_GOLD_BADGES INTEGER DEFAULT 0,
-                $COLUMN_ABOUT_ME TEXT
+                $COLUMN_ABOUT_ME TEXT,
+                $COLUMN_CREATION_DATE INTEGER,
+                $COLUMN_MODIFIED_DATE INTEGER
             )
         """
     }
@@ -57,9 +61,13 @@ open class UserDatabase(context: Context?) :
         if (oldVersion < 3) {
             db.execSQL("ALTER TABLE $TABLE_USERS ADD COLUMN $COLUMN_ABOUT_ME TEXT")
         }
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE $TABLE_USERS ADD COLUMN $COLUMN_CREATION_DATE INTEGER")
+            db.execSQL("ALTER TABLE $TABLE_USERS ADD COLUMN $COLUMN_MODIFIED_DATE INTEGER")
+        }
     }
 
-    open fun insertUsers(users: List<User>) {
+    override suspend fun insertUsers(users: List<User>) {
         val db = writableDatabase
         db.transaction {
             users.forEach { user ->
@@ -74,13 +82,15 @@ open class UserDatabase(context: Context?) :
                     put(COLUMN_SILVER_BADGES, user.badgeCounts?.silver ?: 0)
                     put(COLUMN_GOLD_BADGES, user.badgeCounts?.gold ?: 0)
                     put(COLUMN_ABOUT_ME, user.aboutMe)
+                    put(COLUMN_CREATION_DATE, user.creationDate)
+                    put(COLUMN_MODIFIED_DATE, user.lastModifiedDate)
                 }
                 insertWithOnConflict(TABLE_USERS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
             }
         }
     }
 
-    open fun getAllUsers(): List<User> {
+    override suspend fun getAllUsers(): List<User> {
         val users = mutableListOf<User>()
         val db = readableDatabase
         val cursor: Cursor = db.query(
@@ -90,7 +100,7 @@ open class UserDatabase(context: Context?) :
             null,
             null,
             null,
-            "$COLUMN_REPUTATION DESC"
+            null
         )
 
         cursor.use {
@@ -104,7 +114,7 @@ open class UserDatabase(context: Context?) :
         return users
     }
 
-    open fun getUserById(userId: Int): User? {
+    override suspend fun getUserById(userId: Int): User? {
         val db = readableDatabase
         val cursor = db.query(
             TABLE_USERS,
@@ -125,14 +135,10 @@ open class UserDatabase(context: Context?) :
         }
     }
 
-    open fun clearAllUsers() {
+    override suspend fun clearAllUsers() {
         writableDatabase.delete(TABLE_USERS, null, null)
     }
 
-    /**
-     * Maps the current row of the [Cursor] to a [User] domain model.
-     * Assumes the cursor is already positioned at a valid row.
-     */
     private fun Cursor.toUser(): User {
         return User(
             id = getInt(getColumnIndexOrThrow(COLUMN_ID)),
@@ -146,7 +152,9 @@ open class UserDatabase(context: Context?) :
                 silver = getInt(getColumnIndexOrThrow(COLUMN_SILVER_BADGES)),
                 gold = getInt(getColumnIndexOrThrow(COLUMN_GOLD_BADGES))
             ),
-            aboutMe = getString(getColumnIndexOrThrow(COLUMN_ABOUT_ME))
+            aboutMe = getString(getColumnIndexOrThrow(COLUMN_ABOUT_ME)),
+            creationDate = if (isNull(getColumnIndexOrThrow(COLUMN_CREATION_DATE))) null else getLong(getColumnIndexOrThrow(COLUMN_CREATION_DATE)),
+            lastModifiedDate = if (isNull(getColumnIndexOrThrow(COLUMN_MODIFIED_DATE))) null else getLong(getColumnIndexOrThrow(COLUMN_MODIFIED_DATE))
         )
     }
 }

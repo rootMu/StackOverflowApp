@@ -4,6 +4,7 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -28,11 +29,12 @@ fun NavGraphBuilder.mainNavigationGraph(
  */
 @Composable
 fun MainNavigationHost(
+    modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     buildGraph: NavGraphBuilder.(NavHostController, SharedTransitionScope) -> Unit =
         { controller, scope -> mainNavigationGraph(controller, scope) }
 ) {
-    SharedTransitionLayout {
+    SharedTransitionLayout(modifier = modifier) {
         CompositionLocalProvider(
             LocalSharedTransitionScope provides this
         ) {

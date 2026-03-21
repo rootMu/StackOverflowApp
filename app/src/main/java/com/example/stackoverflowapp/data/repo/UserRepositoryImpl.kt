@@ -5,49 +5,55 @@ import com.example.stackoverflowapp.data.api.StackOverflowUsersApi
 import com.example.stackoverflowapp.data.api.UserDto
 import com.example.stackoverflowapp.data.api.toResult
 import com.example.stackoverflowapp.data.storage.UserDatabase
+import com.example.stackoverflowapp.domain.model.AppError
+import com.example.stackoverflowapp.domain.model.AppErrorException
 import com.example.stackoverflowapp.domain.model.BadgeCounts
 import com.example.stackoverflowapp.domain.model.User
 
 class UserRepositoryImpl(
     private val usersApi: StackOverflowUsersApi,
-    private val userDatabase: UserDatabase
+    private val localDataSource: UserDatabase
 ) : UserRepository {
 
-    override suspend fun fetchTopUsers(): Result<List<User>> {
-        val localUsers = userDatabase.getAllUsers()
-        if (localUsers.isNotEmpty()) {
-            return Result.success(localUsers)
+    override suspend fun fetchTopUsers(page: Int): Result<List<User>> {
+        if (page == 1) {
+            val localUsers = localDataSource.getAllUsers()
+            if (localUsers.isNotEmpty()) {
+                return Result.success(localUsers)
+            }
         }
-        return fetchUsersFromApi()
+        return fetchUsersFromApi(page = page)
     }
 
     override suspend fun fetchUserDetails(userId: Int): Result<User> {
-        val localUser = userDatabase.getUserById(userId)
+        val localUser = localDataSource.getUserById(userId)
 
-        if (localUser != null && !localUser.aboutMe.isNullOrBlank()) {
+        if (localUser != null && localUser.hasCompleteDetails()) {
             return Result.success(localUser)
         }
 
         return usersApi.fetchUserDetails(userId)
             .toResult()
             .mapCatching { dto ->
-                val userDto = dto.items.firstOrNull() ?: throw Exception("User not found")
-                userDto.toDomain().also { userDatabase.insertUsers(listOf(it)) }
+                val userDto = dto.items.firstOrNull() ?: throw AppErrorException(AppError.Data.NotFound)
+                userDto.toDomain().also { localDataSource.insertUsers(listOf(it)) }
             }
             .let { apiResult ->
                 localUser?.takeIf { apiResult.isFailure }?.let(Result.Companion::success) ?: apiResult
             }
     }
 
+    private fun User.hasCompleteDetails(): Boolean = !aboutMe.isNullOrBlank()
+
     override suspend fun refreshUsers(): Result<List<User>> {
-        return fetchUsersFromApi(clearCache = true)
+        return fetchUsersFromApi(page = 1, clearCache = true)
     }
 
-    private suspend fun fetchUsersFromApi(clearCache: Boolean = false): Result<List<User>> {
-        return usersApi.fetchTopUsers(page = 1, pageSize = 20).toResult().map { response ->
+    private suspend fun fetchUsersFromApi(page: Int, clearCache: Boolean = false): Result<List<User>> {
+        return usersApi.fetchTopUsers(page = page, pageSize = 20).toResult().map { response ->
             val domainUsers = response.items.map { it.toDomain() }
-            if (clearCache) userDatabase.clearAllUsers()
-            userDatabase.insertUsers(domainUsers)
+            if (clearCache) localDataSource.clearAllUsers()
+            localDataSource.insertUsers(domainUsers)
             domainUsers
         }
     }
@@ -62,7 +68,9 @@ private fun UserDto.toDomain(): User {
         badgeCounts = badgeCounts?.toDomain(),
         location = location,
         websiteUrl = websiteUrl,
-        aboutMe = aboutMe
+        aboutMe = aboutMe,
+        creationDate = creationDate,
+        lastModifiedDate = lastModifiedDate
     )
 }
 

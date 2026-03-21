@@ -10,7 +10,8 @@ class FakeHttpURLConnection(
     private val responseCodeValue: Int = 200,
     private val responseMessageValue: String = "OK",
     private val bodyBytes: ByteArray = byteArrayOf(),
-    private val connectThrows: Throwable? = null
+    private val connectThrows: Throwable? = null,
+    private val getInputStreamThrows: Throwable? = null
 ) : HttpURLConnection(url) {
 
     var disconnected = false
@@ -30,5 +31,8 @@ class FakeHttpURLConnection(
 
     override fun getResponseMessage(): String = responseMessageValue
 
-    override fun getInputStream(): InputStream = ByteArrayInputStream(bodyBytes)
+    override fun getInputStream(): InputStream {
+        getInputStreamThrows?.let { throw it }
+        return ByteArrayInputStream(bodyBytes)
+    }
 }
