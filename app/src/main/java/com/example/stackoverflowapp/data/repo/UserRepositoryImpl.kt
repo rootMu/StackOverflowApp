@@ -13,12 +13,14 @@ class UserRepositoryImpl(
     private val localDataSource: UserLocalDataSource
 ) : UserRepository {
 
-    override suspend fun fetchTopUsers(): Result<List<User>> {
-        val localUsers = localDataSource.getAllUsers()
-        if (localUsers.isNotEmpty()) {
-            return Result.success(localUsers)
+    override suspend fun fetchTopUsers(page: Int): Result<List<User>> {
+        if (page == 1) {
+            val localUsers = localDataSource.getAllUsers()
+            if (localUsers.isNotEmpty()) {
+                return Result.success(localUsers)
+            }
         }
-        return fetchUsersFromApi()
+        return fetchUsersFromApi(page = page)
     }
 
     override suspend fun fetchUserDetails(userId: Int): Result<User> {
@@ -42,11 +44,11 @@ class UserRepositoryImpl(
     private fun User.hasCompleteDetails(): Boolean = !aboutMe.isNullOrBlank()
 
     override suspend fun refreshUsers(): Result<List<User>> {
-        return fetchUsersFromApi(clearCache = true)
+        return fetchUsersFromApi(page = 1, clearCache = true)
     }
 
-    private suspend fun fetchUsersFromApi(clearCache: Boolean = false): Result<List<User>> {
-        return usersApi.fetchTopUsers(page = 1, pageSize = 20).toResult().map { response ->
+    private suspend fun fetchUsersFromApi(page: Int, clearCache: Boolean = false): Result<List<User>> {
+        return usersApi.fetchTopUsers(page = page, pageSize = 20).toResult().map { response ->
             val domainUsers = response.items.map { it.toDomain() }
             if (clearCache) localDataSource.clearAllUsers()
             localDataSource.insertUsers(domainUsers)

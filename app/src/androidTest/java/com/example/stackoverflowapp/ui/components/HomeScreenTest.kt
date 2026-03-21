@@ -8,8 +8,11 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import com.example.stackoverflowapp.data.image.ImageLoader
 import com.example.stackoverflowapp.domain.model.SharedTransitionTestContext
 import com.example.stackoverflowapp.domain.model.createTestUser
@@ -22,13 +25,16 @@ import org.junit.Assert
 import org.junit.Rule
 import org.junit.Test
 
+/**
+ * UI tests for the [HomeScreen] composable.
+ */
 @OptIn(ExperimentalSharedTransitionApi::class)
 class HomeScreenTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
-    val fakeImageLoader = object : ImageLoader {
+    private val fakeImageLoader = object : ImageLoader {
         override suspend fun loadBitmap(url: String): Bitmap? = null
         override fun getCachedBitmap(url: String): Bitmap? = null
     }
@@ -44,6 +50,7 @@ class HomeScreenTest {
                     onRetry = {},
                     onUserClick = {},
                     onFollowClick = {},
+                    onLoadMore = {},
                     sharedTransitionScope = this,
                     animatedContentScope = animatedScope
                 )
@@ -64,6 +71,7 @@ class HomeScreenTest {
                     onRetry = {},
                     onUserClick = {},
                     onFollowClick = {},
+                    onLoadMore = {},
                     sharedTransitionScope = this,
                     animatedContentScope = animatedScope
                 )
@@ -85,6 +93,7 @@ class HomeScreenTest {
                     onRetry = {},
                     onUserClick = {},
                     onFollowClick = {},
+                    onLoadMore = {},
                     sharedTransitionScope = this,
                     animatedContentScope = animatedScope
                 )
@@ -105,6 +114,7 @@ class HomeScreenTest {
                     onRetry = {},
                     onUserClick = {},
                     onFollowClick = {},
+                    onLoadMore = {},
                     sharedTransitionScope = this,
                     animatedContentScope = animatedScope
                 )
@@ -127,6 +137,7 @@ class HomeScreenTest {
                     onRetry = { retryCount++ },
                     onUserClick = {},
                     onFollowClick = {},
+                    onLoadMore = {},
                     sharedTransitionScope = this,
                     animatedContentScope = animatedScope
                 )
@@ -151,7 +162,7 @@ class HomeScreenTest {
         composeRule.setContent {
             SharedTransitionLayout {
                 AnimatedContent(targetState = true, label = "test") { animatedState ->
-                    if(animatedState) {
+                    if (animatedState) {
                         CompositionLocalProvider(
                             LocalSharedTransitionScope provides this@SharedTransitionLayout,
                             LocalAnimatedVisibilityScope provides this@AnimatedContent
@@ -164,7 +175,8 @@ class HomeScreenTest {
                                 animatedContentScope = this@AnimatedContent,
                                 onRetry = {},
                                 onUserClick = {},
-                                onFollowClick = {}
+                                onFollowClick = {},
+                                onLoadMore = {}
                             )
                         }
                     }
@@ -174,5 +186,149 @@ class HomeScreenTest {
 
         composeRule.onNodeWithText("Jeff Atwood").assertIsDisplayed()
         composeRule.onNodeWithText("Joel Spolsky").assertIsDisplayed()
+    }
+
+    @Test
+    fun scrollingNearEnd_triggersOnLoadMore() {
+        var loadMoreCalled = false
+        val users = (1..60).map { createTestUser(id = it, name = "User $it") }
+        val uiModels = users.map { UserUiModel(it, false) }
+
+        composeRule.setContent {
+            SharedTransitionTestContext { animatedScope ->
+                HomeScreen(
+                    state = HomeScreenState(users = uiModels),
+                    gridState = rememberLazyGridState(),
+                    imageLoader = fakeImageLoader,
+                    onRetry = {},
+                    onUserClick = {},
+                    onFollowClick = {},
+                    onLoadMore = { loadMoreCalled = true },
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
+        }
+
+        Assert.assertFalse(loadMoreCalled)
+
+        composeRule.onNodeWithTag("users_grid").performScrollToIndex(users.size - 1)
+        composeRule.waitUntil(timeoutMillis = 5000) { loadMoreCalled }
+        
+        Assert.assertTrue("onLoadMore should have been triggered by scroll", loadMoreCalled)
+    }
+
+    @Test
+    fun isLoadingMore_showsLoadingIndicator() {
+        val users = (1..2).map { createTestUser(id = it, name = "User $it") }
+        val uiModels = users.map { UserUiModel(it, false) }
+
+        composeRule.setContent {
+            SharedTransitionTestContext { animatedScope ->
+                HomeScreen(
+                    state = HomeScreenState(users = uiModels, isLoadingMore = true),
+                    gridState = rememberLazyGridState(),
+                    imageLoader = fakeImageLoader,
+                    onRetry = {},
+                    onUserClick = {},
+                    onFollowClick = {},
+                    onLoadMore = {},
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
+        }
+
+        composeRule.waitUntil(timeoutMillis = 10000) {
+            composeRule.onAllNodesWithTag("pagination_loading_indicator").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithTag("users_grid").performScrollToIndex(uiModels.size)
+        composeRule.onNodeWithTag("pagination_loading_indicator").assertIsDisplayed()
+    }
+
+    @Test
+    fun endReached_doesNotTriggerOnLoadMore() {
+        var loadMoreCalled = false
+        val users = (1..60).map { createTestUser(id = it, name = "User $it") }
+        val uiModels = users.map { UserUiModel(it, false) }
+
+        composeRule.setContent {
+            SharedTransitionTestContext { animatedScope ->
+                HomeScreen(
+                    state = HomeScreenState(users = uiModels, endReached = true),
+                    gridState = rememberLazyGridState(),
+                    imageLoader = fakeImageLoader,
+                    onRetry = {},
+                    onUserClick = {},
+                    onFollowClick = {},
+                    onLoadMore = { loadMoreCalled = true },
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("users_grid").performScrollToIndex(users.size - 1)
+        
+        Thread.sleep(500)
+        
+        Assert.assertFalse("onLoadMore should NOT have been triggered because endReached is true", loadMoreCalled)
+    }
+
+    @Test
+    fun alreadyLoadingMore_doesNotTriggerOnLoadMoreAgain() {
+        var loadMoreCallCount = 0
+        val users = (1..60).map { createTestUser(id = it, name = "User $it") }
+        val uiModels = users.map { UserUiModel(it, false) }
+
+        composeRule.setContent {
+            SharedTransitionTestContext { animatedScope ->
+                HomeScreen(
+                    state = HomeScreenState(users = uiModels, isLoadingMore = true),
+                    gridState = rememberLazyGridState(),
+                    imageLoader = fakeImageLoader,
+                    onRetry = {},
+                    onUserClick = {},
+                    onFollowClick = {},
+                    onLoadMore = { loadMoreCallCount++ },
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("users_grid").performScrollToIndex(users.size - 1)
+        
+        Thread.sleep(500)
+        
+        Assert.assertEquals("onLoadMore should NOT have been triggered because isLoadingMore is true", 0, loadMoreCallCount)
+    }
+
+    @Test
+    fun shortList_doesNotTriggerOnLoadMore() {
+        var loadMoreCalled = false
+        val users = (1..2).map { createTestUser(id = it, name = "User $it") }
+        val uiModels = users.map { UserUiModel(it, false) }
+
+        composeRule.setContent {
+            SharedTransitionTestContext { animatedScope ->
+                HomeScreen(
+                    state = HomeScreenState(users = uiModels),
+                    gridState = rememberLazyGridState(),
+                    imageLoader = fakeImageLoader,
+                    onRetry = {},
+                    onUserClick = {},
+                    onFollowClick = {},
+                    onLoadMore = { loadMoreCalled = true },
+                    sharedTransitionScope = this,
+                    animatedContentScope = animatedScope
+                )
+            }
+        }
+
+        composeRule.mainClock.advanceTimeBy(500)
+        
+        Assert.assertFalse("onLoadMore should NOT be triggered for a short list where all items are visible", loadMoreCalled)
     }
 }

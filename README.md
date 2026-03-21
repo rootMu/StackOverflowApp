@@ -42,6 +42,7 @@ The project is organized into the following layers:
 - **User Details Page**: Tapping a user opens a dedicated details screen with richer profile information including badges, reputation, location, website, and bio.
 - **Shared Element Transitions**: Smooth shared transitions animate the selected user card and image from the grid into the details screen.
 - **Search, Sort, and Favourites Filtering**: Supports real-time user filtering and sorting, with an optional favourites-only view.
+- **Pagination**: Fetches additional users from the Stack Overflow API as the user scrolls, with a loading indicator and end-of-list detection.
 - **Persistent Following System**: Followed users are stored locally and remain persisted independently of API refreshes.
 - **Manual Image Loading & Memory Caching**: Profile images are fetched, decoded, cached, and displayed without third-party image libraries.
 - **Offline-Friendly Cache Behaviour**:
@@ -174,7 +175,6 @@ The app supports both cached user lists and richer detail fetches.
 - **UI**: Core features including User Search, Filtering, and User Favouriting are fully functional.
 
 ### Roadmap
-- [ ] **Pagination**: Implement a paging mechanism to fetch more users from the Stack Overflow API as the user scrolls.
 - [ ] **Multi-List Support**: Allow users to switch between different types of user lists (e.g., "Top Reputed", "Recently Active", "New Users").
 - [ ] **Advanced Filtering**: Add more granular filtering options (e.g., filter by location, tags, or specific reputation ranges).
 - [ ] **Offline Mode**: Enhance the local storage strategy to support a full offline-first experience.

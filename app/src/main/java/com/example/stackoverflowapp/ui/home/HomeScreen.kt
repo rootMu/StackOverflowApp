@@ -23,12 +23,13 @@ fun HomeScreen(
     onRetry: () -> Unit,
     onUserClick: (Int) -> Unit,
     onFollowClick: (Int) -> Unit,
+    onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     when {
         state.isLoading && !state.isRefreshing -> LoadingScreen()
-        state.error != null -> ErrorStateView(
+        state.error != null && state.users.isEmpty() -> ErrorStateView(
             title = "Connection Error",
             message = "We couldn't connect to StackOverflow. Please check your connection and try again.",
             technicalDetails = state.error,
@@ -58,7 +59,10 @@ fun HomeScreen(
                 imageLoader = imageLoader,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedContentScope = animatedContentScope,
-                contentPadding = contentPadding
+                contentPadding = contentPadding,
+                isLoadingMore = state.isLoadingMore,
+                isEndReached = state.endReached,
+                onLoadMore = onLoadMore
             )
         }
     }

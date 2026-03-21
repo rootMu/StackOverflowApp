@@ -300,6 +300,52 @@ class HomeViewModelTest {
         assertEquals(1, state.users.size)
     }
 
+    @Test
+    fun `loadMoreUsers appends users and updates state`() = runTest {
+        val page1Users = listOf(createTestUser(1), createTestUser(2))
+        val page2Users = listOf(createTestUser(3), createTestUser(4))
+        
+        val repo = FakeUserRepository(Result.success(page1Users))
+        repo.setResultForPage(2, Result.success(page2Users))
+        
+        val viewModel = createViewModel(repo)
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+        
+        assertEquals(2, viewModel.screenState.value.users.size)
+        
+        viewModel.loadMoreUsers()
+        assertTrue(viewModel.screenState.value.isLoadingMore)
+        
+        advanceUntilIdle()
+        
+        val state = viewModel.screenState.value
+        assertFalse(state.isLoadingMore)
+        assertEquals(4, state.users.size)
+        assertEquals(3, state.users[2].user.id)
+    }
+
+    @Test
+    fun `loadMoreUsers does not trigger if endReached`() = runTest {
+        val repo = FakeUserRepository(Result.success(listOf(createTestUser(1))))
+        repo.setResultForPage(2, Result.success(emptyList()))
+        
+        val viewModel = createViewModel(repo)
+        backgroundCollect(viewModel.screenState)
+        advanceUntilIdle()
+        
+        viewModel.loadMoreUsers()
+        advanceUntilIdle()
+        
+        assertTrue(viewModel.screenState.value.endReached)
+        val callCountAfterPage2 = repo.fetchCallCount
+        
+        viewModel.loadMoreUsers()
+        runCurrent()
+        
+        assertEquals("Should not have called repository again", callCountAfterPage2, repo.fetchCallCount)
+    }
+
     private fun createViewModel(
         repo: UserRepository,
         followedUsersRepository: FollowedUsersRepository = FakeFollowUserRepository(FakeUserStore())

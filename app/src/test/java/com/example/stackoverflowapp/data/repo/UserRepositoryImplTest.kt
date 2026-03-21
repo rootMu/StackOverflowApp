@@ -56,18 +56,33 @@ class UserRepositoryImplTest {
     )
 
     @Test
-    fun `fetchTopUsers returns local data when available`() = runTest {
+    fun `fetchTopUsers returns local data when available on page 1`() = runTest {
         val user = createTestUser(1)
         val list = listOf(user)
         fakeDb.insertUsers(list)
 
         setupRepository(ApiResult.Success(list.toDto()))
 
-        val result = repository.fetchTopUsers()
+        val result = repository.fetchTopUsers(page = 1)
 
         Assert.assertTrue(result.isSuccess)
         Assert.assertEquals(user, result.getOrThrow().first())
         Assert.assertEquals(0, fakeApi.callCount)
+    }
+
+    @Test
+    fun `fetchTopUsers page 2 always calls API even if local data exists`() = runTest {
+        val user = createTestUser(1)
+        fakeDb.insertUsers(listOf(user))
+
+        val apiUser = createTestUser(2)
+        setupRepository(ApiResult.Success(listOf(apiUser).toDto()))
+
+        val result = repository.fetchTopUsers(page = 2)
+
+        Assert.assertTrue(result.isSuccess)
+        Assert.assertEquals(apiUser, result.getOrThrow().first())
+        Assert.assertEquals(1, fakeApi.callCount)
     }
 
     @Test
